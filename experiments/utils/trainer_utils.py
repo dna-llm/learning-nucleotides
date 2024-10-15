@@ -3,11 +3,10 @@ import os
 import torch
 from datasets import DatasetDict, load_dataset
 from losses import (
-    AELoss,
     ComplementLoss,
     Headless,
     StandardLoss,
-    Two_D_Repr_Loss,
+    TwoDRepLoss,
     VAELoss,
 )
 from transformers import AutoTokenizer, Trainer, TrainingArguments
@@ -38,8 +37,7 @@ def load_loss(loss_type: str) -> Trainer:
         "complement": ComplementLoss,
         "cross_entropy": StandardLoss,
         "headless": Headless,
-        "two_d": Two_D_Repr_Loss,
-        "ae_loss": AELoss,
+        "two_d": TwoDRepLoss,
         "vae_loss": VAELoss,
     }
 
