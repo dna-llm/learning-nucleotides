@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel", "packaging", "torch"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "learning-nucleoTIDEs"
+name = "learning-nucleotides"
 version = "0.0.1"
 description = "Experiments on the learnability of DNA sequences"
 authors = [{ name = "dna", email = "tbd@gmail.com" }]
