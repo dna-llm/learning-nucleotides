@@ -13,7 +13,6 @@ from losses import (
 from transformers import AutoTokenizer, Trainer, TrainingArguments
 
 from .model_utils import (
-    load_ae,
     load_denseformer,
     load_evo,
     load_pythia,
@@ -28,7 +27,6 @@ def load_model(name: str, **kwargs) -> torch.nn.Module:
         "denseformer": load_denseformer,
         "evo": load_evo,
         "wavelet": load_wavelet,
-        "ae": load_ae,
         "vae": load_vae,
     }
 
@@ -83,12 +81,12 @@ def load_datasets(
         print(f"Before filtering: {len(ds['train'])}")
         sequence = "input_ids"
         if use_2d_seq:
-            ds = ds.filter(filter_bad_2d)  # noqa: PLW2901
+            ds = ds.filter(filter_bad_2d)
             print(f"After filtering: {len(ds['train'])}")
             sequence = "2D_Sequence_Interpolated"
         if not is_pretrained:
             ds["train"] = ds["train"].select_columns(["id", sequence])
-            ds = ds.map(pad_input_ids, remove_columns=ds["train"].column_names)  # noqa: PLW2901
+            ds = ds.map(pad_input_ids, remove_columns=ds["train"].column_names)
 
     return train, val, test
 
