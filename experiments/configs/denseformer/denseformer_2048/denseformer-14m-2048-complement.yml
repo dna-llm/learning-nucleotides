@@ -1,0 +1,21 @@
+model:
+  name: "denseformer"
+  is_pretrained: True
+  max_seq_len: 2048
+  config_name: "EleutherAI/pythia-14m"
+  tokenizer_name: "Hack90/virus_pythia_31_1024"
+
+data:
+  train: "DNA-LLM/experiment_one_viral_genomes_train_set_v2"
+  val: "DNA-LLM/experiment_one_viral_genomes_val_set_v2"
+  test: "DNA-LLM/experiment_one_viral_genomes_test_set_v2"
+  use_2d_seq: False
+
+training:
+  num_train_epochs: 1
+  batch_size: 72
+  learning_rate: 0.00005
+  warmup_steps: 10
+  loss_type: "complement"
+  logging_steps: 100
+  logging_dir: "./logs"

@@ -1,0 +1,21 @@
+model:
+  name: "vae"
+  is_pretrained: False
+  max_seq_len: 1000
+  config_name: null
+  tokenizer_name: null
+
+data:
+  train: "DNA-LLM/experiment_one_viral_genomes_train_set"
+  val: "DNA-LLM/experiment_one_viral_genomes_val_set"
+  test: "DNA-LLM/experiment_one_viral_genomes_test_set"
+  use_2d_seq: True
+
+training:
+  num_train_epochs: 10
+  batch_size: 32
+  learning_rate: 0.001
+  warmup_steps: 100
+  logging_steps: 50
+  logging_dir: "./logs"
+  loss_type: "vae"

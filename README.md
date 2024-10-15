@@ -1,0 +1,84 @@
+# nucleotide-model-experiments <!-- omit in toc -->
+
+- [Abstract](#abstract)
+- [Project Objectives and downstream plan](#project-objectives-and-downstream-plan)
+  - [Workflow Modeling](#workflow-modeling)
+  - [Workflow Datasets](#workflow-datasets)
+- [Prior Work](#prior-work)
+- [Datasets](#datasets)
+
+## Abstract
+
+Our project’s aim to build a DNA foundation model capable of generating topologically consistent and biologically viable whole genomes. To achieve this goal, we will be building the ideal model component by component. We plan to work on these components incrementally and scale up with time, a rough order of our experiments is given below.
+
+1. **Ideal Loss:** What's the ideal loss function for a nucleotide model? What are the trade-offs with regard to each model type in this context? What do we lose, and what do we gain, information-wise? What sections of a sequence do each of the losses emphasize? Can we combine different losses? The losses in our experiments include but are not limited to Cross Entropy, Reverse Complements, Chaos Game Representation, Persistent Homology, Headless Loss, and 2D Line. See: [“Can we learn to generate viral genomes?”](https://huggingface.co/spaces/Hack90/virus_explorer)  for chart representation of those metrics.
+2. **Ideal Model Architecture:** As mentioned above, we are interested in testing different models in multiple combinations with our losses. So, the questions above will apply to the different architectures, too. Model types we plan to use include Transformer-based, SSM-based, and mixed Models, as well as convolution-based models such as the Multiresolution Convolutional memory model (MultiresConv).
+3. **Ideal Dataset:** How much redundancy is there in a genome dataset? What is the optimum learning strategy? How well is topology preserved between different samples and species?
+4. **Maximum Scale, optimal parameters:** How do each of the previous steps change with scale? Are there clear scaling laws, and can these be applied to get an optimal large foundation model?
+We’ll be starting with our NCBI virus dataset and then extending our project to include other organisms with far longer genomes. An important part of the scaling will be the scale of context windows, and we will likely need very large context windows as soon as we want to handle more complex life forms. First experiments in this direction have been done on the small scale already, see [Context Windows](https://huggingface.co/spaces/Hack90/context_and_viral_dna_models) for an example.
+
+## Project Objectives and downstream plan
+
+This project aims to:
+
+- Create a DNA-sequence:natural-language-description dataset of diverse species combining publicly available sequences with their associated texts/research papers.
+- Build homologicaly/topologically optimised DNA models that outperform the current state of the art
+- Build DNA models capable of generating biologically viable whole genomes
+
+Potential downstream applications for Nucleotide-only Language Models (LLMs) include:
+
+- Encoders for sequence comparisons and classifications
+- Base models for fine-tuned sequence generators and predictors, such as:
+  - Bacteria specific phage generators
+  - Whole genome generators for de novo organisms
+  - Antibiotic resistance classifiers based on bacterial plasmid DNA
+- Sequence quality predictors for both small sequences (as found in functional genomics) and large sequences (as found in whole-genome sequencing projects)
+
+### Workflow Modeling
+
+Rough order of the experiments. Experiment one and two will interact, as we plan to test multiple models with multiple losses.
+
+![Rough order of the experiments.](images/modeling-tasks.png)
+
+### Workflow Datasets
+
+When we have working models and tested losses for the viral dataset, we expand into other domains of life.
+Deduplication, can save us a lot of compute, so we should dedicate some time to it before delving into new, especially very big datasets.
+![Data view.](images/data-tasks.png)
+
+## Prior Work
+
+Currently, most nucleotide-based models are either: phylum-specific, trained on either small high-quality datasets or large low-quality ones. Even [Evo](https://github.com/evo-design/evo?tab=readme-ov-file) does not take into account the topological diversity of the training data. This project aims to create a high-quality dataset comprising various species with varying sequence lengths
+
+| Model                             | Parameters | Dataset                                                                                               | Dataset size | Context Window | Our improvements                                      | Code                                                                                                                                                 | Weights                                                                                                                                                                    | Huggingface                                                                                                                                                                | Model Type                                                                                                                                                                 |
+| --------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- | ------------ | -------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HyenaDNA                          | 0.44M-6.6M | [Human Refrence Genome](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001405.26/)               | 3.1B         | 1k-1M          | Larger dataset + Longer context windows + Multispecie | [HazyResearch/hyena-dna](https://github.com/HazyResearch/hyena-dna)                                                                                  | [LongSafari](https://huggingface.co/LongSafari)                                                                                                                            | [LongSafari](https://huggingface.co/LongSafari)                                                                                                                            | SSM                                                                                                                                                                        |
+| DNABert2                          | 117M       | [Multi-species genome](https://arxiv.org/pdf/2306.15006.pdf#table.7)                                  | 32.49B       | 512            | Larger dataset + Longer context windows               | [Zhihan1996/DNABERT_2](https://github.com/Zhihan1996/DNABERT_2)                                                                                      | [DNABERT-2-117M](https://huggingface.co/zhihan1996/DNABERT-2-117M)                                                                                                         | [DNABERT-2-117M](https://huggingface.co/zhihan1996/DNABERT-2-117M)                                                                                                         | Encoder - Transformer                                                                                                                                                      |
+| Nucleotide Transformer            | 50M-2.5B   | [Multi-species genome](https://www.biorxiv.org/content/10.1101/2023.01.11.523679v2.full.pdf#A.2)      | 1T           | 2024           | Larger dataset + Longer context windows               | [Nucleotide Transformer: Building and Evaluating Robust Foundation Models for Human Genomics](https://github.com/instadeepai/nucleotide-transformer) | [InstaDeepAI (InstaDeep Ltd)](https://huggingface.co/InstaDeepAI)                                                                                                          | [https://huggingface.co/InstaDeepAI](https://huggingface.co/InstaDeepAI)                                                                                                   | Decoder - Transformer                                                                                                                                                      |
+| Genomic Pre-trained Network (GPN) | 30M ~      | [Single Specie(Brassicales)](https://huggingface.co/datasets/songlab/genomes-brassicales-balanced-v1) | 1.23GB       | 512            | Larger dataset + Longer context windows               | [songlab-cal/gpn](https://github.com/songlab-cal/gpn)                                                                                                | No weights released                                                                                                                                                        |                                                                                                                                                                            | Encoder - Transformer                                                                                                                                                      |
+| Gena-LM                           | 110M       | Human + Multispecis genome                                                                            | ~10B         | 512-4096       | Larger dataset + Longer context windows               | [GitHub - AIRI-Institute/GENA_LM](https://github.com/AIRI-Institute/GENA_LM)                                                                         | [AIRI - Artificial Intelligence Research Institute](https://huggingface.co/AIRI-Institute)                                                                                 | [AIRI - Artificial Intelligence Research Institute](https://huggingface.co/AIRI-Institute)                                                                                 | Encoder - Transformer                                                                                                                                                      |
+| Grover                            | 350M       | [HG19](https://zenodo.org/records/8373053)                                                            | 2.3GiB       | 512            | Larger dataset + Longer context windows               | [GROVER pretrained DNA language model of the human genome.](https://zenodo.org/records/8373117)                                                      | [https://zenodo.org/records/8373117](https://zenodo.org/records/8373117)                                                                                                   | N/A                                                                                                                                                                        | Encoder - Transformer                                                                                                                                                      |
+| EVO                               | 7B         | [OpenGenome](https://www.biorxiv.org/content/10.1101/2024.02.27.582234v1.full.pdf#appendix.B)         | 250B         | 8k-131k        | Larger dataset + Longer context windows + Multispecie | [EVO](https://github.com/evo-design/evo?tab=readme-ov-file)                                                                                          | [togethercomputer/evo-1-131k-base](https://huggingface.co/togethercomputer/evo-1-131k-base)                                                                                | [togethercomputer/evo-1-131k-base](https://huggingface.co/togethercomputer/evo-1-131k-base)                                                                                | SSM - Transformer Hybrid                                                                                                                                                   |
+| Caduceus                          | 30M        | [Human Refrence Genome](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001405.26/)               | 3.1B         | 131k           | Larger dataset + Longer context windows + Multispecie | [kuleshov-group/caduceus](https://github.com/kuleshov-group/caduceus?tab=readme-ov-file)                       | [https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350](https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350) | [kuleshov-group/caduceus](https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350) | [kuleshov-group/caduceus](https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350) |
+
+## Datasets
+
+For our initial nucleotide models, we will use the RefSeq dataset:
+
+| Type          | Tokens | Size | Huggingface                                                                                                               |
+| ---------------- | ------ | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Fungi         | 18B | 5.4GB   | [Fungi Genomes](https://huggingface.co/datasets/Hack90/ref_seq_fungi)              |
+| Bacteria      | 1368B  | 402GB   |    [Bacteria Genomes Part 1](https://huggingface.co/datasets/Hack90/ref_seq_bacteria_part_1)  [Bacteria Genomes Part 2](https://huggingface.co/datasets/Hack90/ref_seq_bacteria_part_2) [Bacteria Genomes Part 3](https://huggingface.co/datasets/Hack90/ref_seq_bacteria_part_3)  [Bacteria Genomes Part 4](https://huggingface.co/datasets/Hack90/ref_seq_bacteria_part_4)                                                                                                                         |
+| Invertebrate  | 369B   | 108GB   | [Invertebrate Genomes](https://huggingface.co/datasets/Hack90/ref_seq_invertebrate)   |
+| Mammals       | 859B   | 252GB   |    [Mammal Genomes Part 1](https://huggingface.co/datasets/Hack90/ref_seq_mammals_part_1) [Mammal Genomes Part 2](https://huggingface.co/datasets/Hack90/ref_seq_mammals_part_2)                                                                                                                        |
+| Vertebrate Other | 867B   | 255GB   |  [Non-mammal Vertebrate Genomes Part 1](https://huggingface.co/datasets/Hack90/ref_seq_vertebrate_non_mammal_part_1) [Non-mammal Vertebrate Genomes Part 2](https://huggingface.co/datasets/Hack90/ref_seq_vertebrate_non_mammal_part_2)                                                                                                                         |
+| Protozoa      | 3.7B   | 1GB  | [Protozoa Genomes](https://huggingface.co/datasets/Hack90/ref_seq_protozoa)        |
+| Plasmids      | 6.4B   | 1.89GB  | [Plasmid Genomes](https://huggingface.co/datasets/Hack90/ref_seq_plasmid)          |
+| Plastids      | 2.1B   | 0.63GB  | [Plastid Genomes](https://huggingface.co/datasets/Hack90/ref_seq_plastid)          |
+| Archea        | 5.4B   | 1.588GB | [Archea Genomes](https://huggingface.co/datasets/Hack90/ref_seq_archaea)          |
+| Viruses       | 0.54B  | 0.161GB | [Viral Genomes](https://huggingface.co/datasets/Hack90/ref_seq_viral)              |
+| Plants        | 299B   | 88.2GB  | [Plant Genomes](https://huggingface.co/datasets/Hack90/ref_seq_plants)                                                                                                                           |
+| Mitochondrion | 0.537B | 0.158GB | [Mitochondrion Genomes](https://huggingface.co/datasets/Hack90/ref_seq_mitochondrion) |
+| Total         | 3.8T   | 1.12TB  |                                                                                                                           |
+
+In addition to the RefSeq dataset, we'll create a DNA-natural language description dataset. The main reason for this is that [in-context learning](https://arxiv.org/abs/2402.12530) is a direct result of parallel structure. Therefore, to generate sequences based on natural language input, it is not sufficient to fine-tune the model on a question-answer dataset alone. Instead, we must also encode the desired output structure during the pre-training step.

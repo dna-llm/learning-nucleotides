@@ -1,0 +1,22 @@
+model:
+  name: "pythia"
+  is_pretrained: True
+  num_params: 14
+  max_seq_len: 1024
+  config_name: "EleutherAI/pythia-14m"
+  tokenizer_name: "Hack90/virus_pythia_31_1024"
+
+data:
+  train: "Hack90/experiment_one_viral_genomes_train_set"
+  val: "Hack90/experiment_one_viral_genomes_val_set"
+  test: "Hack90/experiment_one_viral_genomes_test_set"
+  use_2d: False
+
+training:
+  num_train_epochs: 1
+  batch_size: 48
+  learning_rate: 0.00005
+  warmup_steps: 10
+  loss_type: "two_d"
+  logging_steps: 100
+  logging_dir: "./logs"

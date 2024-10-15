@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools", "wheel", "packaging", "torch"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nucleotide-model-experiments"
+version = "0.0.1"
+description = "Experiments with DNA sequence models"
+authors = [{ name = "dna", email = "tbd@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch",
+  "datasets",
+  "transformers",
+  "huggingface_hub[cli]",
+  "accelerate",
+  "seaborn",
+  "ruff",
+  "pre-commit",
+  "pytest",
+  "pydantic",
+  "kan-gpt @ git+https://github.com/hssn-20/kan-gpt",
+  "PyWavelets",
+  "evo-model",
+  "levenshtein",
+  "audio-diffusion-pytorch",
+]
+
+
+[tool.setuptools.packages.find]
+where = ["experiment_one"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--log-cli-level=INFO -sv --durations=0"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  # pycodestyle
+  "E",
+  "W",
+  # pyflakes
+  "F",
+  # pylint
+  "PL",
+  # isort
+  "I",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # flake8-comprehensions
+  "C4",
+  # ruff
+  "RUF",
+]
+fixable = ["ALL"]
+ignore = [
+  # too many branches
+  "PLR0912",
+  # too many arguments
+  "PLR0913",
+  # too many local variables
+  "PLR0914",
+  # too many statements
+  "PLR0915",
+  # too many positional arguments
+  "PLR0917",
+  # magic number
+  "PLR2004",
+  # line too long
+  "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401", "D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
