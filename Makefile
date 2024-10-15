@@ -1,4 +1,4 @@
-.PHONY: check_uv install check test update help
+.PHONY: check_uv install requirements check test update help
 
 check_uv: # install `uv` if not installed
 	@if ! command -v uv > /dev/null 2>&1; then \
@@ -7,17 +7,17 @@ check_uv: # install `uv` if not installed
 	fi
 	@uv self update
 
-install: check_uv ## Install the virtual environment and  pre-commit hooks
-	@echo "📦 Creating virtual environment"
-	@uv venv --python=3.11 --seed
-	@uv pip install packaging torch
-	@uv sync --all-extras --no-build-isolation-package flash-attn
-	@echo "🛠️ Installing developer tools..."
+install: check_uv
+	echo "📦 Creating virtual environment and installing dependencies" && \
+	uv venv --python=3.11 --seed && \
+	. .venv/bin/activate && \
+	uv pip install packaging torch && \
+	uv sync --all-extras --no-build-isolation-package flash-attn --locked
 	@uv run pre-commit install
 
 requirements: check_uv
-	@echo "Making requirements.txt and requirements-cpu.txt"
-	@uv pip compile pyproject.toml -o requirements.txt
+	@echo "Exporting dependencies to requirements.txt..."
+	@uv export --output-file requirements.txt --no-hashes
 
 check: ## Run code quality tools
 	@echo "⚡️ Linting code: Running ruff"
@@ -32,6 +32,7 @@ test: ## Test the code with pytest
 update: ## Update pre-commit hooks
 	@echo "⚙️ Updating dependencies and pre-commit hooks"
 	@uv lock --upgrade
+	$(MAKE) requirements
 	@uv run pre-commit autoupdate
 
 help:

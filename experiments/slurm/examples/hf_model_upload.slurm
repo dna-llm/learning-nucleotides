@@ -4,13 +4,13 @@
 #SBATCH --gres gpu:1
 #SBATCH --mem-per-cpu=64G
 #SBATCH --job-name=hf_upload
-#SBATCH -o ../logs/%x-%N-%j.out
-#SBATCH -e ../logs/%x-%N-%j.out
+#SBATCH -o logs/%x-%N-%j.out
+#SBATCH -e logs/%x-%N-%j.out
 
 #export HOME="path_to_home"
 
 # set vars
-REPO_DIR="path_to_repos/nucleotide-model-experiments"
+REPO_DIR="path_to/learning-nucleotides"
 EXPT_DIR="/$REPO_DIR/experiment_one"
 CONFIG_FILE="/$EXPT_DIR/configs/$1"
 cd $EXPT_DIR

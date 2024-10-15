@@ -3,7 +3,6 @@ import logging
 from unittest.mock import MagicMock
 
 import pytest
-
 from experiment_one.utils import (
     ExperimentConfig,
     load_model,
@@ -19,7 +18,7 @@ def load_yaml_config(config_file: str) -> ExperimentConfig:
     return ExperimentConfig.from_yaml(config_file)
 
 
-@pytest.mark.parametrize("config_file", glob.glob("tests/configs/*.yml"))
+@pytest.mark.parametrize("config_file", glob.glob("tests/configs/*.yaml"))
 def test_load_config(config_file):
     logger.info(f"Testing configuration loading for {config_file}")
     try:
@@ -31,7 +30,7 @@ def test_load_config(config_file):
         pytest.fail(f"Failed to load config {config_file}: {e}")
 
 
-@pytest.mark.parametrize("config_file", glob.glob("tests/configs/*.yml"))
+@pytest.mark.parametrize("config_file", glob.glob("tests/configs/*.yaml"))
 def test_load_model(config_file):
     logger.info(f"Testing model loading for {config_file}")
     try:
@@ -44,7 +43,7 @@ def test_load_model(config_file):
         pytest.fail(f"Failed to load model for config {config_file}: {e}")
 
 
-@pytest.mark.parametrize("config_file", glob.glob("tests/configs/*.yml"))
+@pytest.mark.parametrize("config_file", glob.glob("tests/configs/*.yaml"))
 def test_load_trainer(config_file):
     logger.info(f"Testing trainer initialization for {config_file}")
     try:

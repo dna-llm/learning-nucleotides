@@ -6,7 +6,7 @@ for file in $(cat $CONFIG_FILES); do
     # Skip lines starting with '#' or empty lines
     [[ "$file" =~ ^# ]] || [[ -z "$file" ]] && continue
     echo "$file submitted to slurm";
-    JOB_NAME=$(basename "$file" .yml)
+    JOB_NAME=$(basename "$file" .yaml)
     sbatch --job-name=$JOB_NAME run_hf_model.slurm $file
 
 done

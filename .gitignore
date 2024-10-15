@@ -6,6 +6,7 @@
 logs
 */virus-*
 models_to_upload
+ucd-*
 *tfevents*
 experiment_one/outputs/
 experiment_one/figures/

@@ -3,9 +3,9 @@ requires = ["setuptools", "wheel", "packaging", "torch"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nucleotide-model-experiments"
+name = "learning-nucleotides"
 version = "0.0.1"
-description = "Experiments with DNA sequence models"
+description = "Experiments on the learnability of DNA sequences"
 authors = [{ name = "dna", email = "tbd@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,9 +16,6 @@ dependencies = [
   "huggingface_hub[cli]",
   "accelerate",
   "seaborn",
-  "ruff",
-  "pre-commit",
-  "pytest",
   "pydantic",
   "kan-gpt @ git+https://github.com/hssn-20/kan-gpt",
   "PyWavelets",
@@ -27,9 +24,11 @@ dependencies = [
   "audio-diffusion-pytorch",
 ]
 
+[tool.uv]
+dev-dependencies = ["ruff", "pytest", "pre-commit"]
 
 [tool.setuptools.packages.find]
-where = ["experiment_one"]
+where = ["experiments"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -41,40 +40,24 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = [
-  # pycodestyle
-  "E",
+  "E",   # pycodestyle
   "W",
-  # pyflakes
-  "F",
-  # pylint
-  "PL",
-  # isort
-  "I",
-  # flake8-bugbear
-  "B",
-  # flake8-simplify
-  "SIM",
-  # flake8-comprehensions
-  "C4",
-  # ruff
-  "RUF",
+  "F",   # pyflakes
+  "PL",  # pylint
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "SIM", # flake8-simplify
+  "C4",  # flake8-comprehensions
+  "RUF", # ruff
 ]
 fixable = ["ALL"]
 ignore = [
-  # too many branches
-  "PLR0912",
-  # too many arguments
-  "PLR0913",
-  # too many local variables
-  "PLR0914",
-  # too many statements
-  "PLR0915",
-  # too many positional arguments
-  "PLR0917",
-  # magic number
-  "PLR2004",
-  # line too long
-  "E501",
+  "PLR0913", # too many arguments
+  "PLR0914", # too many local variables
+  "PLR0917", # too many positional arguments
+  "PLR2004", # magic number
+  "PLW2901", # for loop variable overwritten by assignment target
+  "E501",    # line too long
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -82,3 +65,9 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

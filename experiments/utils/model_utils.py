@@ -1,6 +1,5 @@
 from kan_gpt.model import GPT as KAN_GPT
 from models import (
-    AE,
     VAE,
     MistralDenseFormerForCausalLM,
     MultiresTransformer,
@@ -114,7 +113,7 @@ def load_wavelet(**kwargs):
         indep_res_init=True,
         tree_select="fading",
         hinit=None,  # "coif1"
-        max_length=1000,
+        max_seqlen=2048,
         d_input=6,
         nr_logistic_mix=3,
     )
@@ -129,16 +128,6 @@ def load_kan(max_seq_length: int, **kwargs):
     config.vocab_size = 8
     config.block_size = max_seq_length
     model = KAN_GPT(config)
-
-    return model
-
-
-def load_ae(**kwargs):
-    model = AE(
-        sequence_length=1000,
-        linear_sizes=[1024, 512, 256, 128, 64],
-        activation="leakyrelu",
-    )
 
     return model
 

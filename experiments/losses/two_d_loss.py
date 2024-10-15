@@ -3,7 +3,11 @@ from torch import nn
 from transformers import Trainer
 
 
-class Two_D_Repr_Loss(Trainer):
+class TwoDRepLoss(Trainer):
+    """
+    TwoDRepLoss is a loss function for 2D representations of nucleotide sequences.
+    """
+
     def __init__(self, model, **kwargs):
         super().__init__(model, **kwargs)
         self.logits_method = None
@@ -22,7 +26,7 @@ class Two_D_Repr_Loss(Trainer):
             return model_output.logits
 
     def compute_loss(self, model, inputs):
-        device = 'cuda'
+        device = "cuda"
 
         input_ids = inputs.pop("input_ids").to(device)
         labels = input_ids.clone().to(device)
