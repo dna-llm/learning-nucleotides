@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONFIGS_DIR="../configs/"
+CONFIGS_DIR="../configs/$1"
 OUTPUT_FILE="config_files_to_run.txt"
 
 # Remove the output file if it already exists
