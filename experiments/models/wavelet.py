@@ -183,7 +183,7 @@ class MultiresTransformerConfig(PretrainedConfig):
         indep_res_init=True,
         tree_select="fading",
         hinit=None,
-        max_length=1000,
+        max_seqlen=1000,
         d_input=6,
         nr_logistic_mix=3,
         **kwargs,
@@ -199,7 +199,7 @@ class MultiresTransformerConfig(PretrainedConfig):
         self.indep_res_init = indep_res_init
         self.tree_select = tree_select
         self.hinit = hinit
-        self.max_length = max_length
+        self.max_length = max_seqlen
         self.d_input = d_input
         self.nr_logistic_mix = nr_logistic_mix
 

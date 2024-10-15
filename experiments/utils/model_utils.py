@@ -114,7 +114,7 @@ def load_wavelet(**kwargs):
         indep_res_init=True,
         tree_select="fading",
         hinit=None,  # "coif1"
-        max_length=1000,
+        max_seqlen=2048,
         d_input=6,
         nr_logistic_mix=3,
     )
