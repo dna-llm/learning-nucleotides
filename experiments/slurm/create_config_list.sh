@@ -8,7 +8,7 @@ if [ -f "$OUTPUT_FILE" ]; then
     echo "Removing existing output file..."
     rm "$OUTPUT_FILE"
 fi
-# Loop through each yml file in the configs folder
+# Loop through each yaml file in the configs folder
 for file in "$CONFIGS_DIR"/*.yaml; do
     FILE_NAME=$(basename "$file")
     echo "$FILE_NAME" >> "$OUTPUT_FILE"
