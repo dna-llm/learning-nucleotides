@@ -49,28 +49,27 @@ tokenizer = AutoTokenizer.from_pretrained("Hack90/virus_pythia_31_1024")
 print(viral_df.head())
 print(viral_df.shape)
 
-"""
-logger.info("Calculating sequence quality")
-viral_df['sequence_quality'] = viral_df['sequence'].apply(sequence_quality)
 
-logger.info("Filtering out sequences with quality less than 0.001")
-viral_df = viral_df[viral_df['sequence_quality'] <= 0]
+# logger.info("Calculating sequence quality")
+# viral_df['sequence_quality'] = viral_df['sequence'].apply(sequence_quality)
 
-logger.info("Splitting the dataset into training, validation and test sets")
-train_df = viral_df.sample(frac=0.7, random_state=42)
-val_df = viral_df.drop(train_df.index).sample(frac=0.5, random_state=42)
-test_df = viral_df.drop(train_df.index).drop(val_df.index)
+# logger.info("Filtering out sequences with quality less than 0.001")
+# viral_df = viral_df[viral_df['sequence_quality'] <= 0]
 
-logger.info("Creating training dataset")
-train_ds = create_dataset(train_df)
-logger.info("Creating validation dataset")
-val_ds = create_dataset(val_df)
-logger.info("Creating test dataset")
-test_ds = create_dataset(test_df)
+# logger.info("Splitting the dataset into training, validation and test sets")
+# train_df = viral_df.sample(frac=0.7, random_state=42)
+# val_df = viral_df.drop(train_df.index).sample(frac=0.5, random_state=42)
+# test_df = viral_df.drop(train_df.index).drop(val_df.index)
 
-logger.info("uploading datasets to the hub")
-train_ds.push_to_hub("Hack90/experiment_one_viral_genomes_train_set")
-val_ds.push_to_hub("Hack90/experiment_one_viral_genomes_val_set")
-test_ds.push_to_hub("Hack90/experiment_one_viral_genomes_test_set")
-logger.info("done")
-"""
+# logger.info("Creating training dataset")
+# train_ds = create_dataset(train_df)
+# logger.info("Creating validation dataset")
+# val_ds = create_dataset(val_df)
+# logger.info("Creating test dataset")
+# test_ds = create_dataset(test_df)
+
+# logger.info("uploading datasets to the hub")
+# train_ds.push_to_hub("Hack90/experiment_one_viral_genomes_train_set")
+# val_ds.push_to_hub("Hack90/experiment_one_viral_genomes_val_set")
+# test_ds.push_to_hub("Hack90/experiment_one_viral_genomes_test_set")
+# logger.info("done")
