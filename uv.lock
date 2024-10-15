@@ -831,14 +831,18 @@ dependencies = [
     { name = "huggingface-hub", extra = ["cli"] },
     { name = "kan-gpt" },
     { name = "levenshtein" },
-    { name = "pre-commit" },
     { name = "pydantic" },
-    { name = "pytest" },
     { name = "pywavelets" },
-    { name = "ruff" },
     { name = "seaborn" },
     { name = "torch" },
     { name = "transformers" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -850,14 +854,18 @@ requires-dist = [
     { name = "huggingface-hub", extras = ["cli"] },
     { name = "kan-gpt", git = "https://github.com/hssn-20/kan-gpt" },
     { name = "levenshtein" },
-    { name = "pre-commit" },
     { name = "pydantic" },
-    { name = "pytest" },
     { name = "pywavelets" },
-    { name = "ruff" },
     { name = "seaborn" },
     { name = "torch" },
     { name = "transformers" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "ruff" },
 ]
 
 [[package]]
