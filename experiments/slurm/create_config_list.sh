@@ -9,7 +9,7 @@ if [ -f "$OUTPUT_FILE" ]; then
     rm "$OUTPUT_FILE"
 fi
 # Loop through each yml file in the configs folder
-for file in "$CONFIGS_DIR"/*.yml; do
+for file in "$CONFIGS_DIR"/*.yaml; do
     FILE_NAME=$(basename "$file")
     echo "$FILE_NAME" >> "$OUTPUT_FILE"
 done

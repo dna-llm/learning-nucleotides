@@ -4,8 +4,8 @@
 #SBATCH --gres gpu:1
 #SBATCH --mem-per-cpu=64G
 #SBATCH --job-name=dna_llm
-#SBATCH -o ../logs/%x-%N-%j.out
-#SBATCH -e ../logs/%x-%N-%j.out
+#SBATCH -o logs/%x-%N-%j.out
+#SBATCH -e logs/%x-%N-%j.out
 
 nvidia-smi
 # might need to copy original HOME to a location slurm can access
@@ -13,7 +13,7 @@ nvidia-smi
 
 # set vars
 NUM_GPUS=2
-REPO_DIR="path_to_repos/nucleotide-model-experiments"
+REPO_DIR="path_to/learning-nucleotides/"
 EXPT_DIR="/$REPO_DIR/experiment_one"
 CONFIG_FILE="/$EXPT_DIR/configs/$1"
 cd $EXPT_DIR
