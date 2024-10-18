@@ -10,10 +10,337 @@ import sklearn
 import Bio 
 from pymemesuite import fimo
 from captum.attr import GradientShap
+from datasets import load_dataset
+from itertools import product
 import logomaker
 import tqdm
+import pywt
+import math
+import torch
+from torch import nn
+from huggingface_hub import HfApi, HfFileSystem, hf_hub_download
+from collections import namedtuple, defaultdict
+from transformers import TrainingArguments, AutoTokenizer, AutoConfig, AutoModelWithLMHead, AutoModelForCausalLM, PretrainedConfig, PreTrainedModel
+
+#############################################################################################################################
+# Wavelet 
+#############################################################################################################################
+
+class MultiresLayer(nn.Module):
+    def __init__(
+        self,
+        d_model,
+        kernel_size=None,
+        depth=None,
+        wavelet_init=None,
+        tree_select="fading",
+        seq_len=None,
+        dropout=0.0,
+        memory_size=None,
+        indep_res_init=False,
+    ):
+        super().__init__()
+
+        self.kernel_size = kernel_size
+        self.d_model = d_model
+        self.seq_len = seq_len
+        self.tree_select = tree_select
+        if depth is not None:
+            self.depth = depth
+        elif seq_len is not None:
+            self.depth = self.max_depth(seq_len)
+        else:
+            raise ValueError("Either depth or seq_len must be provided.")
+
+        if tree_select == "fading":
+            self.m = self.depth + 1
+        elif memory_size is not None:
+            self.m = memory_size
+        else:
+            raise ValueError("memory_size must be provided when tree_select != 'fading'")
+
+        with torch.no_grad():
+            if wavelet_init is not None:
+                self.wavelet = pywt.Wavelet(wavelet_init)
+                h0 = torch.tensor(self.wavelet.dec_lo[::-1], dtype=torch.float32)
+                h1 = torch.tensor(self.wavelet.dec_hi[::-1], dtype=torch.float32)
+                self.h0 = nn.Parameter(torch.tile(h0[None, None, :], [d_model, 1, 1]))
+                self.h1 = nn.Parameter(torch.tile(h1[None, None, :], [d_model, 1, 1]))
+            elif kernel_size is not None:
+                self.h0 = nn.Parameter(
+                    torch.empty(d_model, 1, kernel_size).uniform_(-1.0, 1.0)
+                    * math.sqrt(2.0 / (kernel_size * 2))
+                )
+                self.h1 = nn.Parameter(
+                    torch.empty(d_model, 1, kernel_size).uniform_(-1.0, 1.0)
+                    * math.sqrt(2.0 / (kernel_size * 2))
+                )
+            else:
+                raise ValueError("kernel_size must be specified for non-wavelet initialization.")
+
+            w_init = torch.empty(d_model, self.m + 1).uniform_(-1.0, 1.0) * math.sqrt(
+                2.0 / (2 * self.m + 2)
+            )
+            if indep_res_init:
+                w_init[:, -1] = torch.empty(d_model).uniform_(-1.0, 1.0)
+            self.w = nn.Parameter(w_init)
+
+        self.activation = nn.GELU()
+        dropout_fn = nn.Dropout1d
+        self.dropout = dropout_fn(dropout) if dropout > 0.0 else nn.Identity()
+
+    def max_depth(self, L):
+        depth = math.ceil(math.log2((L - 1) / (self.kernel_size - 1) + 1))
+        return depth
+
+    def forward(self, x):
+        if self.tree_select == "fading":
+            y = forward_fading(x, self.h0, self.h1, self.w, self.depth, self.kernel_size)
+        elif self.tree_select == "uniform":
+            y = forward_uniform(x, self.h0, self.h1, self.w, self.depth, self.kernel_size, self.m)
+        else:
+            raise NotImplementedError()
+        y = self.dropout(self.activation(y))
+        return y
 
 
+def forward_fading(x, h0, h1, w, depth, kernel_size):
+    res_lo = x
+    y = 0.0
+    dilation = 1
+    L = x.shape[-1]
+    for i in range(depth, 0, -1):
+        padding = dilation * (kernel_size - 1)
+        res_lo_pad = torch.nn.functional.pad(res_lo, (padding, 0), "constant", 0)
+        res_hi = torch.nn.functional.conv1d(res_lo_pad, h1, dilation=dilation, groups=x.shape[1])
+        res_lo = torch.nn.functional.conv1d(res_lo_pad, h0, dilation=dilation, groups=x.shape[1])
+
+        # Trim res_hi and res_lo to match the input length L
+        if res_hi.shape[-1] > L:
+            res_hi = res_hi[..., -L:]
+        if res_lo.shape[-1] > L:
+            res_lo = res_lo[..., -L:]
+
+        y += w[:, i : i + 1] * res_hi
+        dilation *= 2
+
+    y += w[:, :1] * res_lo
+    y += x * w[:, -1:]
+    return y
+
+
+def forward_uniform(x, h0, h1, w, depth, kernel_size, memory_size):
+    # x: [bs, d_model, L]
+    coeff_lst = []
+    dilation_lst = [1]
+    dilation = 1
+    res_lo = x
+    for _ in range(depth):
+        padding = dilation * (kernel_size - 1)
+        res_lo_pad = torch.nn.functional.pad(res_lo, (padding, 0), "constant", 0)
+        res_hi = torch.nn.functional.conv1d(res_lo_pad, h1, dilation=dilation, groups=x.shape[1])
+        res_lo = torch.nn.functional.conv1d(res_lo_pad, h0, dilation=dilation, groups=x.shape[1])
+        coeff_lst.append(res_hi)
+        dilation *= 2
+        dilation_lst.append(dilation)
+    coeff_lst.append(res_lo)
+    coeff_lst = coeff_lst[::-1]
+    dilation_lst = dilation_lst[::-1]
+
+    # y: [bs, d_model, L]
+    y = uniform_tree_select(coeff_lst, dilation_lst, w, kernel_size, memory_size)
+    y += x * w[:, -1:]
+    return y
+
+
+def uniform_tree_select(coeff_lst, dilation_lst, w, kernel_size, memory_size):
+    latent_dim = 1
+    y_lst = [coeff_lst[0] * w[:, 0, None]]
+    layer_dim = 1
+    dilation_lst[0] = 1
+    for layer, coeff_l in enumerate(coeff_lst[1:]):
+        if latent_dim + layer_dim > memory_size:
+            layer_dim = memory_size - latent_dim
+        # layer_w: [d, layer_dim]
+        layer_w = w[:, latent_dim : latent_dim + layer_dim]
+        # coeff_l_pad: [bs, d, L + left_pad]
+        left_pad = (layer_dim - 1) * dilation_lst[layer]
+        coeff_l_pad = torch.nn.functional.pad(coeff_l, (left_pad, 0), "constant", 0)
+        # y: [bs, d, L]
+        y = torch.nn.functional.conv1d(
+            coeff_l_pad,
+            torch.flip(layer_w[:, None, :], (-1,)),
+            dilation=dilation_lst[layer],
+            groups=coeff_l.shape[1],
+        )
+        y_lst.append(y)
+        latent_dim += layer_dim
+        if latent_dim >= memory_size:
+            break
+        layer_dim = 2 * (layer_dim - 1) + kernel_size
+    return sum(y_lst)
+
+
+def apply_norm(x, norm, batch_norm=False):
+    if batch_norm:
+        return norm(x)
+    else:
+        return norm(x.transpose(-1, -2)).transpose(-1, -2)
+
+
+class MultiresTransformerConfig(PretrainedConfig):
+    model_type = "multires_transformer"
+
+    def __init__(
+        self,
+        n_tokens=8,
+        d_model=128,
+        n_layers=6,
+        kernel_size=2,
+        depth=4,
+        dropout=0.1,
+        d_mem=1024,
+        indep_res_init=True,
+        tree_select="fading",
+        hinit=None,
+        max_seqlen=1000,
+        d_input=6,
+        nr_logistic_mix=3,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.n_tokens = n_tokens
+        self.d_model = d_model
+        self.n_layers = n_layers
+        self.kernel_size = kernel_size
+        self.depth = depth
+        self.dropout = dropout
+        self.d_mem = d_mem
+        self.indep_res_init = indep_res_init
+        self.tree_select = tree_select
+        self.hinit = hinit
+        self.max_length = max_seqlen
+        self.d_input = d_input
+        self.nr_logistic_mix = nr_logistic_mix
+
+
+class MultiresTransformer(PreTrainedModel):
+    config_class = MultiresTransformerConfig
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.config = config
+
+        self.encoder = nn.Embedding(config.n_tokens, config.d_model)
+        self.seq_layers = nn.ModuleList()
+        self.mixing_layers = nn.ModuleList()
+        self.norms = nn.ModuleList()
+
+        for _ in range(config.n_layers):
+            layer = MultiresLayer(
+                config.d_model,
+                kernel_size=config.kernel_size,
+                depth=config.depth,
+                wavelet_init=config.hinit,
+                tree_select=config.tree_select,
+                seq_len=config.max_length,
+                dropout=config.dropout,
+                memory_size=config.d_mem,
+                indep_res_init=config.indep_res_init,
+            )
+            self.seq_layers.append(layer)
+
+            activation_scaling = 2
+            mixing_layer = nn.Sequential(
+                nn.Conv1d(config.d_model, activation_scaling * config.d_model, 1),
+                nn.GLU(dim=-2),
+                nn.Dropout1d(config.dropout),
+                nn.Conv1d(config.d_model, config.d_model, 1),
+            )
+            self.mixing_layers.append(mixing_layer)
+            self.norms.append(nn.LayerNorm(config.d_model))
+
+        self.decoder = nn.Conv1d(config.d_model, config.n_tokens, 1)
+
+        self.init_weights()
+
+    def forward(self, input_ids):
+        x = self.encoder(input_ids).transpose(1, 2)
+        for layer, mixing_layer, norm in zip(
+            self.seq_layers, self.mixing_layers, self.norms, strict=False
+        ):
+            x_orig = x
+            x = layer(x)
+            x = mixing_layer(x)
+            x += x_orig
+            x = apply_norm(x, norm)
+
+        logits = self.decoder(x)
+        # output: (batch_size, seq_len, vocab_size)
+        return logits.transpose(1, 2)
+
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+###############################################################################################
+# 2D representation 
+###############################################################################################
+# Mapping of nucleotides to float coordinates
+mapping_easy = {
+    'A': np.array([0.5, -0.8660254037844386]),
+    'T': np.array([0.5, 0.8660254037844386]),
+    'G': np.array([0.8660254037844386, -0.5]),
+    'C': np.array([0.8660254037844386, 0.5]),
+    'N': np.array([0, 0])}
+# coordinates for x+iy
+Coord = namedtuple("Coord", ["x","y"])
+# coordinates for a CGR encoding
+CGRCoords = namedtuple("CGRCoords", ["N","x","y"])
+# coordinates for each nucleotide in the 2d-plane
+DEFAULT_COORDS = dict(A=Coord(1,1),C=Coord(-1,1),G=Coord(-1,-1),T=Coord(1,-1))
+
+# Function to convert a DNA sequence to a list of coordinates
+def _dna_to_coordinates(dna_sequence, mapping):
+    dna_sequence = dna_sequence.upper()
+    coordinates = np.array([mapping.get(nucleotide, mapping['N']) for nucleotide in dna_sequence])
+    return coordinates
+
+# Function to create the cumulative sum of a list of coordinates
+def _get_cumulative_coords(mapped_coords):
+    cumulative_coords = np.cumsum(mapped_coords, axis=0)
+    return cumulative_coords
+
+# Function to take a list of DNA sequences and plot them in a single figure
+def get_2d_seq(dna_sequences, mapping=mapping_easy, single_sequence=True):
+    if single_sequence:
+        dna_sequences = [dna_sequences]
+    for dna_sequence in dna_sequences:
+        mapped_coords = _dna_to_coordinates(dna_sequence, mapping)
+        cumulative_coords = _get_cumulative_coords(mapped_coords)
+    return cumulative_coords[:,1]
+def get_2d_seq_as_is(dna_sequences, mapping=mapping_easy, single_sequence=True):
+    if single_sequence:
+        dna_sequences = [dna_sequences]
+    for dna_sequence in dna_sequences:
+        mapped_coords = _dna_to_coordinates(dna_sequence, mapping)
+        cumulative_coords = _get_cumulative_coords(mapped_coords)
+    
+    return cumulative_coords
+###################################################################################### 
+# Getting Data & Tokenizer
+######################################################################################
+
+ds_test = load_dataset('DNA-LLM/experiment_one_viral_genomes_test_set_v2')
+tokenizer = AutoTokenizer.from_pretrained("Hack90/virus_pythia_31_1024")
+######################################################################################
+# Get models
+######################################################################################
+api = HfApi()
+models = api.list_models(author="DNA-LLM")
+repo_ids = []
+for m in models:
+    if "diffusion" not in m.id:
+        if "2048" in m.id:
+            repo_ids.append(m.id)
 #############################################################################################
 # Functional similarity: Conditional generation fidelity
 #############################################################################################
@@ -179,13 +506,13 @@ def compute_kmer_spectra(
       }
     ):
     # convert one hot to A,C,G,T
-    seq_list = []
+    seq_list = [X]
 
-    for index in tqdm(range(len(X))): #for loop is what actually converts a list of one-hot encoded sequences into ACGT
+    # for index in tqdm(range(len(X))): #for loop is what actually converts a list of one-hot encoded sequences into ACGT
 
-        seq = X[index]
+    #     seq = X[index]
 
-        seq_list += ["".join([dna_dict[np.where(i)[0][0]] for i in seq])]
+    #     seq_list += ["".join([dna_dict[np.where(i)[0][0]] for i in seq])]
 
     obj = kmer_featurization(kmer_length)  # initialize a kmer_featurization object
     kmer_features = obj.obtain_kmer_feature_for_a_list_of_sequences(seq_list, write_number_of_occurrences=True)
@@ -776,6 +1103,70 @@ def mechanistic_diversity(attr_scores):
     return np.array(max_similarity)
 
 
+def get_2d_distance(seq, name):
+    moddd = get_model(name)
+    # Plot input sequence
+ #   print(moddd)
+    input_vec = seq[:1024].reshape(1,1024).long()
+    input_long = seq[:2048].reshape(1,2048)
+    input_seq_long = ''.join(tokenizer.convert_ids_to_tokens(input_long.flatten()))
+    input_coords_long = get_2d_seq_as_is(input_seq_long)
+    input_seq = ''.join(tokenizer.convert_ids_to_tokens(input_vec.flatten()))
+    input_coords_short = get_2d_seq_as_is(input_seq)
+    
+    # Plot output for each model
+    
+    current_input = input_vec
+    output_tokens = []
+    
+    # Keep generating until we match or exceed the target length
+    while len(output_tokens) < len(input_long.flatten()):
+        output = moddd(current_input)
+       # print(output)
+        if 'wavelet' in name:
+            new_tokens = output.argmax(2).flatten().tolist()
+        else:
+            #print(output)
+            new_tokens = output.logits.argmax(2).flatten().tolist()
+        output_tokens.extend(new_tokens)
+        
+        # Update current_input for next iteration if needed
+        if len(output_tokens) < len(input_long.flatten()):
+            current_input = torch.tensor(output_tokens[-1024:]).reshape(1, -1)
+    
+    output_tokens = output_tokens[:len(input_long.flatten())]
+    output_seq = ''.join(tokenizer.convert_ids_to_tokens(output_tokens))
+    output_coords = get_2d_seq_as_is(output_seq)
+    distance = wasserstein_distance(output_coords[:,1], input_coords_long[:,1])
+    return distance , output_seq, input_seq_long
 
+def get_model(repo_id):  
+  if 'wavelet' in repo_id:
+      modddd = MultiresTransformer.from_pretrained(repo_id, trust_remote_code=True)
+  else:
+      modddd = AutoModelForCausalLM.from_pretrained(repo_id, trust_remote_code=True)  
+  return modddd
 
+####################################################################################
+distances = []
+repo_id_success = []
+klss = []
+jsds = []
+ds_test.set_format('torch')
+for repo in repo_ids:
+    try:
+        seqqq = ds_test['train'][0]['input_ids']
+        dist, output_seq, input_seq = get_2d_distance(seqqq, repo)
+#         print(dist, 
+#               output_seq     )
+#         print( input_seq )
+        kld, jsd = kmer_statistics(3, output_seq, input_seq)
+        print(kld, jsd) 
+        repo_id_success.append(repo)
+        distances.append(dist)
+        klss.append(kld)
+        jsds.append(jsd)
+    except Exception as error:
+        print(f'failed for {repo}')
+   #     print(error)
 
