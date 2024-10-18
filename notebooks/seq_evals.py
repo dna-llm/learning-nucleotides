@@ -1170,3 +1170,39 @@ for repo in repo_ids:
         print(f'failed for {repo}')
    #     print(error)
 
+import pandas as pd
+df = pd.DataFrame({'repo':repo_id_success, 
+'distances':distances,
+'klss': klss,
+'jsds': jsds})
+repppp = df.repo.str.split('-').tolist()
+params = [rep[3] for rep in repppp]
+model_type = [rep[2] for rep in repppp]
+loss_type = [rep[5] for rep in repppp]
+df['param'] = params
+df['param'] = df['param'].str.replace('M', '')
+df['model_type'] = model_type
+df['loss_type'] = loss_type
+df['hue'] = df[['loss_type', 'model_type']].apply(tuple, axis=1)
+df.param = df.param.astype('float')
+df['hue'] = df['hue'].astype('str')
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+sns.barplot(data=df, x="param", y="klss", hue='hue',
+            palette='Set2')  # Using Set2 color palette for better aesthetics
+
+
+plt.title('3-mer KL', pad=15, fontsize=12, fontweight='bold')
+plt.xlabel('Params - M', fontsize=10)
+plt.ylabel('KL', fontsize=10)
+
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Hue')
+
+plt.tight_layout('3-mer.png')
+plt.savefig()
+
+# Show the plot
+plt.show()
