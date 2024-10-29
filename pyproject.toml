@@ -25,6 +25,7 @@ dependencies = [
   "jax[cuda12]>=0.4.35",
   "jaxlib>=0.4.34",
   "optax>=0.2.3",
+  "flax>=0.10.0",
 ]
 
 [tool.uv]
