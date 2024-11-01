@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from transformers import Trainer
-
+import torch.nn.functional as F
+import torch.linalg as la 
 
 class TwoDRepLoss(Trainer):
     """
@@ -28,69 +29,37 @@ class TwoDRepLoss(Trainer):
     def compute_loss(self, model, inputs):
         device = "cuda"
 
-        input_ids = inputs.pop("input_ids").to(device)
-        labels = input_ids.clone().to(device)
-        input_ids = input_ids[:, :-1].contiguous()  # Truncate the input_ids
-        lm_logits = self.get_logits(model(input_ids))
-        m = nn.Softmax(dim=2)
-        lm_logits = m(lm_logits)
-        shift_labels = labels[:, 1:].contiguous()
-        # print(shift_labels[0])
+        input_ids = inputs.pop("input_ids")
+        logits = self.get_logits(model(input_ids[:, :-1]))
+        labels = input_ids[:, 1:]
 
-        # Define y_values and x_values
-        y_values = (
-            torch.tensor(
-                [0.001, 0.001, 0.001, -0.8660254037844386, 0.8660254037844386, -0.5, 0.5, 0.001]
-            )
-            .reshape(1, 1, 8)
-            .to(device)
-        )
-        x_values = (
-            torch.tensor(
-                [0.001, 0.001, 0.001, 0.5, 0.5, 0.8660254037844386, 0.8660254037844386, 0.001]
-            )
-            .reshape(1, 1, 8)
-            .to(device)
-        )
+        # Use softmax probabilities
+        probabilities = F.softmax(logits, dim=-1)
+        mask = (labels > 2).float() * (labels < 7).float()
 
-        # Process y_values loss
-        lm_logits_y = lm_logits * y_values
-        lm_logits_y = lm_logits_y.cumsum(dim=1)
+        # Define the geometric transformation matrix
+        transform_matrix = torch.tensor([
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [0.0, 0.0],
+            [0.5, -0.8660254],
+            [0.8660254, 0.5],
+            [0.8660254, -0.5],
+            [0.5, 0.8660254],
+            [0.0, 0.0]
+        ]).to(device)
 
-        shift_labels_one_hot = torch.nn.functional.one_hot(shift_labels, num_classes=8).to(device)
+        pred_transformed = torch.matmul(probabilities, transform_matrix)
+        label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
+        label_transformed = torch.matmul(label_one_hot, transform_matrix)
 
-        shift_labels_y = (shift_labels_one_hot + torch.Tensor([0.01]).to(device)) * y_values
+        pred_cumsum = torch.cumsum(pred_transformed, dim=1)
+        label_cumsum = torch.cumsum(label_transformed, dim=1)
 
-        # shift_labels_y = (shift_labels_one_hot + torch.Tensor([0.01])) * y_values
-        shift_labels_y = shift_labels_y.cumsum(dim=1).reshape(lm_logits_y.shape)
+        diff = pred_cumsum - label_cumsum
+        mask = torch.unsqueeze(mask, -1)
+        diff = diff * mask   
 
-        var_y = torch.ones(
-            lm_logits_y.shape, device=device, requires_grad=True
-        )  # heteroscedastic variance
-        loss_fn_y = nn.GaussianNLLLoss()
-        loss_y = loss_fn_y(lm_logits_y, shift_labels_y, var_y)
+        geometric_loss = la.norm(diff, ord=2, axis=0).mean()  
 
-        # Process x_values loss
-        lm_logits_x = lm_logits * x_values
-        lm_logits_x = lm_logits_x.cumsum(dim=1)
-
-        shift_labels_x = (shift_labels_one_hot + torch.Tensor([0.01]).to(device)) * x_values
-
-        # shift_labels_x = (shift_labels_one_hot + torch.Tensor([0.01])) * x_values
-        shift_labels_x = shift_labels_x.cumsum(dim=1).reshape(lm_logits_x.shape)
-        var_x = torch.ones(
-            lm_logits_x.shape, device=device, requires_grad=True
-        )  # heteroscedastic variance
-        loss_fn_x = nn.GaussianNLLLoss()
-        loss_x = loss_fn_x(lm_logits_x, shift_labels_x, var_x)
-
-        # loss_fct = torch.nn.CrossEntropyLoss()
-        # lm_loss = loss_fct(lm_logits.view(-1, lm_logits.size(-1)), shift_labels.view(-1))
-        # # Total loss
-        total_loss = loss_y + loss_x  # + lm_loss
-
-        # print("Loss_y:", loss_y)
-        # print("Loss_x:", loss_x)
-        # print("Total_loss:", total_loss)
-
-        return total_loss
+        return geometric_loss
