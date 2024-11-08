@@ -31,33 +31,6 @@ mapping_easy = {
     'N': np.array([0, 0])
 }
 
-# dfki color map
-def hex_to_rgb(hex):
-    hex = hex.lstrip('#')
-    return tuple(int(hex[i:i+2], 16) / 255.0 for i in (0, 2, 4))
-
-colors_dict = {
-#    'BRIGHT': '#FFFFFF',
-    'ABISKO_GREEN': '#6ABFA3',
-    'OSAKA_RED': '#EC619F',
-    'ERFOUD_ORANGE': '#F7A712',
-    'GUAM_BLUE': '#1D3A8F',
-    'CRIMSON': '#DC143C',
-    'VIBRANT_PURPLE': '#8A2BE2',
-    'SHADY_SKY_BLUE': '#4f9fa8',
-    'BRIGHT_YELLOW': '#FFD700',
-    # 'YELLOW': '#FFF381',
-    # 'MOON_GREY': '#D7DBDD',
-    # 'DARK': '#06171C',
-    # 'LIGHTER_GREEN': '#98CFBA',
-}
-rgb_colors = [hex_to_rgb(color) for color in colors_dict.values()]
-map = colors.LinearSegmentedColormap.from_list('dfki', rgb_colors, N=len(rgb_colors))
-plt.register_cmap(cmap=map)
-plt.set_cmap(map)
-
-
-plt.rcParams["axes.prop_cycle"] = plt.cycler("color", colors_dict.values())
 
 # %%
 # get datasets

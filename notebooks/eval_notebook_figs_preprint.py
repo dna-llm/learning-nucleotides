@@ -7,9 +7,6 @@ import numpy as np
 import pandas as pd
 from huggingface_hub import HfApi, HfFileSystem, hf_hub_download
 from transformers import AutoModelForCausalLM
-import matplotlib.colors as colors
-import matplotlib.pyplot as plt
-import seaborn as sns
 from scipy.interpolate import interp1d
 
 # %%
@@ -17,10 +14,8 @@ from scipy.interpolate import interp1d
 def find_last_checkpoint(repo_id: str) -> str:
     """
     Find the name of the last checkpoint directory in a HuggingFace Model repository.
-
     Args:
         repo_id (str): The repository ID on HuggingFace Hub.
-
     Returns:
         str: The path to the last checkpoint directory.
     """
@@ -42,17 +37,14 @@ def download_trainer_state_from_checkpoint(
 ) -> str:
     """
     Download the trainer state file from a specific checkpoint in a HuggingFace repository.
-
     Args:
         repo_id (str): The repository ID on HuggingFace Hub.
         checkpoint_dir (str): The checkpoint directory to download from.
         filename (str): The name of the trainer state file.
-
     Returns:
         str: The path to the downloaded file.
     """
     if checkpoint_dir:
-        # file_path = f"{checkpoint_dir}/{filename}"
         print(checkpoint_dir.split("/")[-1])
         os.system(f"mkdir {repo_id}/")
         return hf_hub_download(
@@ -64,7 +56,6 @@ def download_trainer_state_from_checkpoint(
     return hf_hub_download(repo_id=repo_id, filename=filename, local_dir="trainer_state.json")
 
 
-
 def load_trainer_state_from_file(filepath: str) -> dict:
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"Trainer state not found at {filepath}")
@@ -73,7 +64,6 @@ def load_trainer_state_from_file(filepath: str) -> dict:
         trainer_state_dict = json.load(file)
 
     return trainer_state_dict
-
 
 
 def combine_training_logs_from_repos(repo_ids: list) -> list:
@@ -95,12 +85,10 @@ def combine_training_logs_from_repos(repo_ids: list) -> list:
                 print(f"Error processing {repo_id}: {e}")
                 continue
         try:
-            # Load the model from the Hugging Face repository
             model = AutoModelForCausalLM.from_pretrained(repo_id, trust_remote_code=True)
             print(model)
             print(repo_id)
 
-            # Get the number of model parameters
             num_params = model.num_parameters()
 
         except Exception:
@@ -115,7 +103,6 @@ def combine_training_logs_from_repos(repo_ids: list) -> list:
         log_history = trainer_state_dict["log_history"]
         df = pd.DataFrame(log_history)
 
-        # Extract param type and loss type from repo ID
         repo_parts = repo_id.split("-")
         param_type = repo_parts[-3]
         if num_params == "Unknown":
@@ -157,41 +144,11 @@ def combine_training_logs_from_repos(repo_ids: list) -> list:
 
 
 # %%
-
-# dfki color map
-def hex_to_rgb(hex):
-    hex = hex.lstrip('#')
-    return tuple(int(hex[i:i+2], 16) / 255.0 for i in (0, 2, 4))
-
-colors_dict = {
-#    'BRIGHT': '#FFFFFF',
-    'ABISKO_GREEN': '#6ABFA3',
-    'OSAKA_RED': '#EC619F',
-    'ERFOUD_ORANGE': '#F7A712',
-    'GUAM_BLUE': '#1D3A8F',
-    'CRIMSON': '#DC143C',
-    'VIBRANT_PURPLE': '#8A2BE2',
-    'SHADY_SKY_BLUE': '#4f9fa8',
-    'BRIGHT_YELLOW': '#FFD700',
-    # 'YELLOW': '#FFF381',
-    # 'MOON_GREY': '#D7DBDD',
-    # 'DARK': '#06171C',
-    # 'LIGHTER_GREEN': '#98CFBA',
-}
-rgb_colors = [hex_to_rgb(color) for color in colors_dict.values()]
-map = colors.LinearSegmentedColormap.from_list('dfki', rgb_colors, N=len(rgb_colors))
-plt.register_cmap(cmap=map)
-plt.set_cmap(map)
-# palette = sns.color_palette(list(colors_dict.values()))
-# sns.set_palette(palette)
-# %%
-# run through experiments and plot loss rates
-
 # Check if the file exists
 if not os.path.isfile('outputs/training_data.csv'):
     print("Getting data.")
     
-    # Initialize API and get models
+    # init API and get mmodels
     api = HfApi()
     models = api.list_models(author="DNA-LLM")
     repo_ids = []
@@ -199,9 +156,7 @@ if not os.path.isfile('outputs/training_data.csv'):
         if "diffusion" not in m.id:
             if "2048" in m.id:
                 repo_ids.append(m.id)
-                #if "pythia" in m.id:
     
-    # Combine training logs
     data_list = combine_training_logs_from_repos(repo_ids)
 
     if len(data_list) > 0:
@@ -217,7 +172,6 @@ else:
 # %%
 # Plotting overview
 plt.figure(figsize=(10, 6))
-color_cycle = plt.cm.get_cmap('dfki', len(rgb_colors))
 
 for idx, (param_type, loss_type) in enumerate([(pt, lt) for pt in combined_df["param_type"].unique() for lt in combined_df["loss_type"].unique()]):
     filtered_data = combined_df[
@@ -228,8 +182,7 @@ for idx, (param_type, loss_type) in enumerate([(pt, lt) for pt in combined_df["p
         plt.plot(
             filtered_data["epoch_interp"],
             filtered_data["loss_interp"],
-            label=f"{param_type} - {loss_type}",
-            color=color_cycle(idx % len(rgb_colors))
+            label=f"{param_type} - {loss_type}"
         )
 
 plt.xlabel("Epoch")
@@ -259,14 +212,13 @@ def plot_loss_rates_model(df, param_types, loss_types, model_types):
                     labels.append(f"{param_type}M_{loss_type}_{model_type}")
     fig, ax = plt.subplots(figsize=(6,4))
     for i, loss_rate in enumerate(loss_rates):
-        ax.plot(x, loss_rate, label=labels[i], color=color_cycle((i) % len(rgb_colors)))
+        ax.plot(x, loss_rate, label=labels[i])
     ax.legend()
     ax.set_xlabel("Training steps")
     ax.set_ylabel("Loss rate")
     return fig
 
 # %%
-# get float param 
 combined_df["param_type_float"] = combined_df["param_type"].str[:-1].astype(float)
 
 param_types = combined_df['param_type_float'].unique()
@@ -278,6 +230,7 @@ for loss in loss_types:
     for model in model_types:
         fig = plot_loss_rates_model(combined_df, param_types, [loss], [model])
         fig.savefig("outputs/0.05_{}_{}_loss_rate.png".format(model, loss))
+
 # %%
 # Plotting context window
 df = pd.read_csv("outputs/context_window.csv")
@@ -293,12 +246,11 @@ for col in df.columns:
 
 fig, ax = plt.subplots()
 for i, loss_rate in enumerate(loss_rates):
-    ax.plot(x, loss_rate, label=labels[i], color=color_cycle((i + 6) % len(rgb_colors)))
+    ax.plot(x, loss_rate, label=labels[i])
 
 ax.legend()
 ax.set_title(f"Loss rates for a Pythia parameter model across context windows")
 ax.set_xlabel("Training steps")
 ax.set_ylabel("Loss rate")
-
 
 # %%
