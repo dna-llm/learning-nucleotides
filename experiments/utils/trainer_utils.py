@@ -18,6 +18,7 @@ from .model_utils import (
     load_vae,
     load_wavelet,
 )
+from .adopt import ADOPT
 
 
 def load_model(name: str, **kwargs) -> torch.nn.Module:
@@ -133,11 +134,13 @@ def load_trainer(
         **kwargs,
     )
     loss_fn = load_loss(loss_type)
+    optimizer = ADOPT(model.parameters(), lr=training_args.learning_rate)
     trainer = loss_fn(
         model=model,
         args=training_args,
         train_dataset=train_dataset["train"],
         eval_dataset=eval_dataset["train"],
         tokenizer=tokenizer,
+        optimizers=(optimizer, None)
     )
     return trainer
