@@ -4,7 +4,7 @@
 *.pth
 *.log
 logs
-*/virus-*
+virus-*/
 models_to_upload
 ucd-*
 *tfevents*
@@ -12,6 +12,8 @@ experiment_one/outputs/
 experiment_one/figures/
 experiment_one/trainer_state.json/
 experiment_one/outputs_old/
+slurm_out/              
+experiments/slurm/sbatch_array_2d.sh
 
 # IDE temp files #
 .vscode/
