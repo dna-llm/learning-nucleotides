@@ -1,4 +1,3 @@
-# %%
 import json
 import random
 
@@ -144,7 +143,7 @@ def plot_gc_content_boxplot(natural_gc_contents: list, generated_gc_contents: li
     sns.stripplot(x="Type", y="GC Content", data=df, color="black", jitter=0.2, size=5, alpha=0.7)
 
 
-def sample_sequences_from_test_set(num_samples=100):
+def sample_sequences_from_test_set(num_samples=10):
     num_samples = min(num_samples, len(test_ds["train"]))
 
     sampled_indices = random.sample(range(len(test_ds["train"])), num_samples)
@@ -167,7 +166,7 @@ def preprocess_sequences(sampled_sequences):
     second_halves_lengths = []
 
     for i, sample in enumerate(sampled_sequences):
-        seq = sample["sequence"]
+        seq = sample["chunked_seqs"]
         n = len(seq)
 
         first_half, second_half = seq[: n // 2], seq[n // 2 :]
@@ -292,7 +291,7 @@ def plot_gc_content_boxplot_dynamic(
 
 # !huggingface-cli login
 # %%
-test_ds = load_dataset("Hack90/experiment_one_viral_genomes_test_set")
+test_ds = load_dataset("DNA-LLM/experiment_one_viral_genomes_test_set_v2")
 sampled_sequences = sample_sequences_from_test_set()
 first_halves, second_halves, first_halves_lengths, second_halves_lengths = preprocess_sequences(
     sampled_sequences
@@ -305,14 +304,15 @@ MODEL_NAME = "togethercomputer/evo-1-8k-base"
 config = AutoConfig.from_pretrained(MODEL_NAME, trust_remote_code=True, revision="1.1_fix")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True, revision="1.1_fix")
 
-model_types = ["pythia", "denseformer", "evo"]
-param_sizes = ["14", "31", "70", "160", "410"]
+
+# MODEL NAME
+model_types = ["pythia"]
+# PARAM SIZE
+param_sizes = ["19"]#"1.2", "4.7", "19"]#,# "85", "302"]
 losses = [
     "cross_entropy",
     "complement",
     "headless",
-    "2d_representation_GaussianPlusCE",
-    "2d_representation_MSEPlusCE",
     "two_d",
 ]
 
@@ -324,18 +324,15 @@ models = api.list_models(author="DNA-LLM")
 for m in models:
     all_models.append(m.id)
 
+
+
 for model_type in model_types:
     for param_size in param_sizes:
         for loss in losses:
-            model_string = f"DNA-LLM/virus_{model_type}_{param_size}_1024_{loss}"
+            model_string = f"DNA-LLM/virus-pythia-{param_size}M-2048-{loss}"
 
             if model_string in all_models:
-                # Pythia 31 1024 Headless doesn't have config.json
-                if model_string == "DNA-LLM/virus_pythia_31_1024_headless":
-                    model = AutoModelForCausalLM.from_pretrained("/content/checkpoint-7000")
-                elif model_string == "DNA-LLM/virus_pythia_31_1024_compliment":
-                    model = AutoModelForCausalLM.from_pretrained("/content/checkpoint-15000")
-                else:
+
                     try:
                         model = AutoModelForCausalLM.from_pretrained(
                             model_string, trust_remote_code=True
@@ -343,155 +340,46 @@ for model_type in model_types:
                     except Exception:
                         print(f"Failed to download {model_string}")
                         continue
+                
+                    model_name_short = f"{model_type}_{param_size}_{loss}"
+                    print(model_name_short)
+                    model_name_to_generated_seqs[model_name_short] = generate_seq_from_halves(
+                        model, first_halves, second_halves_lengths
+                    )
 
-                model_name_short = f"{model_type}_{param_size}_{loss}"
-                model_name_to_generated_seqs[model_name_short] = generate_seq_from_halves(
-                    model, first_halves, second_halves_lengths
-                )
-
-# Convert and write JSON object to file
-# with open("results.json", "w") as outfile:
-#    json.dump(model_name_to_generated_seqs, outfile)
-
-# with open("results.json") as file:
-#  model_name_to_generated_seqs = json.load(file)
-
-with open("outputs/pythia_results.json", "r") as file:
-    p = json.load(file)
-
-with open("outputs/evo_31_1024_cross_entropy_results.json", "r") as file:
-    e = json.load(file)
-
-# with open("outputs/denseformer_31_1024_cross_entropy_results.json", "r") as file:
-#     d = json.load(file)
-# %%
 natural_seqs = [half.lower() for half in second_halves]
 
 plt.figure(figsize=(12, 12))
 
 p_31_losses = [
-    p["pythia_31_cross_entropy"],
-    p["pythia_31_compliment"],
-    p["pythia_31_headless"],
-    p["pythia_31_2d_representation_GaussianPlusCE"],
+    model_name_to_generated_seqs["pythia_19_cross_entropy"],
+    model_name_to_generated_seqs["pythia_19_headless"],
+    model_name_to_generated_seqs["pythia_19_two_d"],
+    model_name_to_generated_seqs["pythia_19_complement"],
     # p["pythia_31_2d_representation_MSEPlusCE"],
 ]
 
+palette = sns.color_palette("tab10", len(p_31_losses) + 1)
 generate_tSNE_embedding_dynamic(
     natural_seqs,
     p_31_losses,
-    ["Pythia CE", "Pythia Compl.", "Pythia Headless", "Pythia 2D"] #, "Pythia MSE+CE"],
+    ["cross_entropy", "headless", "two_d", "complement"] #, "Pythia MSE+CE"],
 )
 
-plt.savefig("outputs/pythia_loss_tsne.png", format="png")
-
+plt.savefig("pythia_loss_tsne.png", format="png")
 plt.figure(figsize=(12, 12))
-
 natural_gc_contents = calculate_gc_content_list(natural_seqs)
-generated_gc_contents_model_1 = calculate_gc_content_list(p["pythia_31_cross_entropy"])
-generated_gc_contents_model_2 = calculate_gc_content_list(p["pythia_31_compliment"])
-generated_gc_contents_model_3 = calculate_gc_content_list(p["pythia_31_headless"])
-generated_gc_contents_model_4 = calculate_gc_content_list(
-    p["pythia_31_2d_representation_GaussianPlusCE"]
-)
-# generated_gc_contents_model_5 = calculate_gc_content_list(
-#     p["pythia_31_2d_representation_MSEPlusCE"]
-# )
+generated_gc_contents_model_1 = calculate_gc_content_list(model_name_to_generated_seqs["pythia_19_cross_entropy"])
+generated_gc_contents_model_2 = calculate_gc_content_list(model_name_to_generated_seqs["pythia_19_two_d"])
+generated_gc_contents_model_3 = calculate_gc_content_list(model_name_to_generated_seqs["pythia_19_headless"])
+generated_gc_contents_model_4 = calculate_gc_content_list(model_name_to_generated_seqs["pythia_19_complement"])
+
 
 generated_gc_contents_list = [
     generated_gc_contents_model_1,
     generated_gc_contents_model_2,
     generated_gc_contents_model_3,
-    generated_gc_contents_model_4,
-    # generated_gc_contents_model_5,
-]
-
-model_names = [
-    "Pythia 31M CE",
-    "Pythia 31M Complement",
-    "Pythia 31M Headless",
-    "Pythia 31M 2D"   #2DGaussian+CE",
-    # "Pythia 31M MSE+CE",
-]
-
-plot_gc_content_boxplot_dynamic(natural_gc_contents, generated_gc_contents_list, model_names)
-
-plt.savefig("outputs/pythia_loss_gc.png", format="png")
-
-# %%
-natural_seqs = [half.lower() for half in second_halves]
-
-plt.figure(figsize=(12, 12))
-
-p_param_losses = [
-    p["pythia_14_compliment"],
-    p["pythia_31_compliment"],
-    p["pythia_70_compliment"],
-    p["pythia_160_compliment"],
-    p["pythia_410_compliment"],
-]
-
-generate_tSNE_embedding_dynamic(
-    natural_seqs,
-    p_param_losses,
-    ["Pythia 14M", "Pythia 31M", "Pythia 70M", "Pythia 160M", "Pythia 410M"],
-)
-
-plt.savefig("outputs/pythia_param_tsne_14M.png", format="png")
-
-plt.figure(figsize=(12, 12))
-
-natural_gc_contents = calculate_gc_content_list(natural_seqs)
-generated_gc_contents_model_0 = calculate_gc_content_list(p["pythia_14_compliment"])
-generated_gc_contents_model_1 = calculate_gc_content_list(p["pythia_31_compliment"])
-generated_gc_contents_model_2 = calculate_gc_content_list(p["pythia_70_compliment"])
-generated_gc_contents_model_3 = calculate_gc_content_list(p["pythia_160_compliment"])
-generated_gc_contents_model_4 = calculate_gc_content_list(p["pythia_410_compliment"])
-
-
-generated_gc_contents_list = [
-    generated_gc_contents_model_0,
-    generated_gc_contents_model_1,
-    generated_gc_contents_model_2,
-    generated_gc_contents_model_3,
-    generated_gc_contents_model_4,
-]
-
-model_names = ["Pythia 14M", "Pythia 31M", "Pythia 70M", "Pythia 160M", "Pythia 410M"]
-
-plot_gc_content_boxplot_dynamic(natural_gc_contents, generated_gc_contents_list, model_names)
-
-plt.savefig("outputs/pythia_param_gc_14M.png", format="png")
-
-natural_seqs = [half.lower() for half in second_halves]
-
-plt.figure(figsize=(12, 12))
-
-model_type_seqs = [
-    p["pythia_31_cross_entropy"],
-    e["evo_31_cross_entropy"],
-    # d["denseformer_31_cross_entropy"],
-]
-
-generate_tSNE_embedding_dynamic(natural_seqs, model_type_seqs, ["Pythia", "Evo", "Denseformer"])
-
-plt.savefig("outputs/pythia_model_type_tsne.png", format="png")
-
-plt.figure(figsize=(12, 12))
-
-natural_gc_contents = calculate_gc_content_list(natural_seqs)
-generated_gc_contents_model_1 = calculate_gc_content_list(p["pythia_31_cross_entropy"])
-generated_gc_contents_model_2 = calculate_gc_content_list(e["evo_31_cross_entropy"])
-# generated_gc_contents_model_3 = calculate_gc_content_list(d["denseformer_31_cross_entropy"])
-
-generated_gc_contents_list = [
-    generated_gc_contents_model_1,
-    generated_gc_contents_model_2,
     generated_gc_contents_model_3,
 ]
-
-model_names = ["Pythia", "Evo", "Denseformer"]
-
+model_names = ["CE", "2D", "Headless"]
 plot_gc_content_boxplot_dynamic(natural_gc_contents, generated_gc_contents_list, model_names)
-
-plt.savefig("outputs/pythia_model_type_gc.png", format="png")
