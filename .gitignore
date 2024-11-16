@@ -14,7 +14,8 @@ experiment_one/trainer_state.json/
 experiment_one/outputs_old/
 slurm_out/              
 experiments/slurm/sbatch_array_2d.sh
-
+notebooks/outputs/
+notebooks/trainer_state.json/
 # IDE temp files #
 .vscode/
 .ipynb_checkpoints
@@ -32,6 +33,8 @@ build
 *.whl
 *.pytest_cache
 __pycache__
+
+
 
 # mkdocs documentation
 /site
