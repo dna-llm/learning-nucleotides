@@ -59,6 +59,5 @@ class TwoDRepLoss(Trainer):
         mask = torch.unsqueeze(mask, -1)
         diff = diff * mask   
         
-        geometric_loss = la.norm(diff, ord=2, axis=0).mean()  
+        geometric_loss = diff.sum(1).mean(0).sum()
         return geometric_loss
-
