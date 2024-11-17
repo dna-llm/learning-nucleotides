@@ -8,6 +8,7 @@ from losses import (
     StandardLoss,
     TwoDRepLoss,
     VAELoss,
+    TwoDRepL2CELoss
 )
 from transformers import AutoTokenizer, Trainer, TrainingArguments
 
@@ -40,6 +41,7 @@ def load_loss(loss_type: str) -> Trainer:
         "headless": Headless,
         "two_d": TwoDRepLoss,
         "vae_loss": VAELoss,
+        "two_d_ce": TwoDRepL2CELoss
     }
 
     return losses[loss_type]
