@@ -46,10 +46,11 @@ class TwoDRepLoss(Trainer):
             [0.8660254, -0.5],
             [0.5, 0.8660254],
             [0.0, 0.0]
-        ])
-        pred_transformed = torch.matmul(torch.nn.functional.softmax(output), transform_matrix)
+        ]).to(device)
         
-        label_transformed = torch.matmul(torch.nn.functional.softmax(output), transform_matrix)
+        pred_transformed = torch.matmul(probabilities, transform_matrix)
+        label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
+        label_transformed = torch.matmul(label_one_hot, transform_matrix)
         
         pred_cumsum = torch.cumsum(pred_transformed, dim=1)
         label_cumsum = torch.cumsum(label_transformed, dim=1)
@@ -58,6 +59,6 @@ class TwoDRepLoss(Trainer):
         mask = torch.unsqueeze(mask, -1)
         diff = diff * mask   
         
-        geometric_loss = diff.sum(1).mean(0).sum()
-
+        geometric_loss = la.norm(diff, ord=2, axis=0).mean()  
         return geometric_loss
+
