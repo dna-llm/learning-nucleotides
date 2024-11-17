@@ -4,7 +4,7 @@ from transformers import Trainer
 import torch.nn.functional as F
 import torch.linalg as la 
 
-class TwoDRepLoss(Trainer):
+class TwoDRepLossEuclidean(Trainer):
     """
     TwoDRepLoss is a loss function for 2D representations of nucleotide sequences.
     """
