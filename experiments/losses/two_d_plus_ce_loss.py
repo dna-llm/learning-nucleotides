@@ -60,11 +60,14 @@ class TwoDRepL2CELoss(Trainer):
         diff = diff * mask   
         
         geometric_loss = la.norm(diff, ord=2, axis=0).mean()  
-        input_ids = input_ids[:, :-1].contiguous()
-        shift_labels = labels[:, 1:].contiguous()
+        
         loss_fct = torch.nn.CrossEntropyLoss()
+        
         logits = logits * mask
-        labels = labels * mask
-        lm_loss = loss_fct(logits.view(-1, logits.size(-1)), labels.view(-1))
+        label_one_hot = label_one_hot * mask
+
+        lm_loss = loss_fct(logits, label_one_hot)
+        
         final_loss = lm_loss + geometric_loss
         return final_loss
+
