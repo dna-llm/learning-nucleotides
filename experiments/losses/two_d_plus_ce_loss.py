@@ -52,12 +52,14 @@ class TwoDRepL2CELoss(Trainer):
         label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
         label_transformed = torch.matmul(label_one_hot, transform_matrix)
         
-        pred_cumsum = torch.cumsum(pred_transformed, dim=1)
-        label_cumsum = torch.cumsum(label_transformed, dim=1)
-        
+        pred_cumsum = pred_transformed.cumsum(2)
+        label_cumsum = label_transformed.cumsum(2)
+
+        mask = mask.reshape(2, 2047,1)
+        label_cumsum = label_cumsum * mask
+        pred_cumsum = pred_cumsum * mask 
         diff = pred_cumsum - label_cumsum
-        mask = torch.unsqueeze(mask, -1)
-        diff = diff * mask   
+
         
         geometric_loss = la.norm(diff, ord=2, axis=0).mean()  
         
