@@ -32,11 +32,19 @@ class TwoDRepL2CELoss(Trainer):
         input_ids = inputs.pop("input_ids")
         logits = self.get_logits(model(input_ids[:, :-1]))
         labels = input_ids[:, 1:]
-
+        label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
+        
+        mask = (labels > 2).float() * (labels < 7).float()
+        mask_batch_size = mask.shape[0] 
+        mask_o = mask
+        mask =  mask.reshape(mask_batch_size * 2047,1)
+        #print(mask)
+        # CE Loss 
+        loss_fct = torch.nn.CrossEntropyLoss()
+      #  loss = loss_fct((logits*mask), (label_one_hot*mask)).mean()
+        loss = loss_fct(logits.reshape(mask_batch_size*2047,8) * mask, label_one_hot.reshape(mask_batch_size*2047,8) * mask).mean()
         # Use softmax probabilities
         probabilities = F.softmax(logits, dim=-1)
-        mask = (labels > 2).float() * (labels < 7).float()
-
         transform_matrix = torch.tensor([
             [0.0, 0.0],
             [0.0, 0.0],
@@ -49,27 +57,22 @@ class TwoDRepL2CELoss(Trainer):
         ]).to(device)
         
         pred_transformed = torch.matmul(probabilities, transform_matrix)
+        pred_cumsum = pred_transformed.cumsum(2)
+        
         label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
         label_transformed = torch.matmul(label_one_hot, transform_matrix)
-        
-        pred_cumsum = pred_transformed.cumsum(2)
         label_cumsum = label_transformed.cumsum(2)
 
-        mask = mask.reshape(2, 2047,1)
-        label_cumsum = label_cumsum * mask
-        pred_cumsum = pred_cumsum * mask 
+
+        #mask away irrelevant logits/labels
+        label_cumsum = label_cumsum * (mask_o.reshape(mask_batch_size ,2047,1))
+        pred_cumsum = pred_cumsum * (mask_o.reshape(mask_batch_size, 2047,1) )
         diff = pred_cumsum - label_cumsum
 
         
         geometric_loss = la.norm(diff, ord=2, axis=0).mean()  
         
-        loss_fct = torch.nn.CrossEntropyLoss()
         
-        logits = logits * mask
-        label_one_hot = label_one_hot * mask
-
-        lm_loss = loss_fct(logits, label_one_hot)
-        
-        final_loss = lm_loss + geometric_loss
+        final_loss = loss + geometric_loss
         return final_loss
 
