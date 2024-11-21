@@ -3,8 +3,9 @@ from torch import nn
 from transformers import Trainer
 import torch.nn.functional as F
 import torch.linalg as la 
+import ot
 
-class TwoDRepWassersteinCELoss(Trainer):
+class TwoDRepL2CELoss(Trainer):
     """
     TwoDRepLoss is a loss function for 2D representations of nucleotide sequences.
     """
@@ -32,11 +33,18 @@ class TwoDRepWassersteinCELoss(Trainer):
         input_ids = inputs.pop("input_ids")
         logits = self.get_logits(model(input_ids[:, :-1]))
         labels = input_ids[:, 1:]
-
-        # Use softmax probabilities
-        probabilities = F.softmax(logits, dim=-1)
+        label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
+        
         mask = (labels > 2).float() * (labels < 7).float()
-
+        mask_batch_size = mask.shape[0] 
+        mask_o = mask
+        mask =  mask.reshape(mask_batch_size * 2047,1)
+        #print(mask)
+        # CE Loss 
+        loss_fct = torch.nn.CrossEntropyLoss()
+      #  loss = loss_fct((logits*mask), (label_one_hot*mask)).mean()
+        loss = loss_fct(logits.reshape(mask_batch_size*2047,8) * mask, label_one_hot.reshape(mask_batch_size*2047,8) * mask).mean()
+        probabilities = F.softmax(logits, dim=-1)
         transform_matrix = torch.tensor([
             [0.0, 0.0],
             [0.0, 0.0],
@@ -49,18 +57,18 @@ class TwoDRepWassersteinCELoss(Trainer):
         ]).to(device)
         
         pred_transformed = torch.matmul(probabilities, transform_matrix)
+        pred_cumsum = pred_transformed.cumsum(2)
+        
         label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
         label_transformed = torch.matmul(label_one_hot, transform_matrix)
-  
-        pred_cumsum = pred_transformed.cumsum(2)
         label_cumsum = label_transformed.cumsum(2)
-        
-        shape = label_cumsum.shape
-        label_cumsum = label_cumsum.reshape(shape[0]*shape[1], shape[2])
-        pred_cumsum = pred_cumsum.reshape(shape[0]*shape[1], shape[2])
 
-        geometric_loss = ot.sliced_wasserstein_distance(
-        pred_cumsum, label_cumsum, n_projections=20, seed=gen
-    )
 
-        return geometric_loss.mean()
+        #mask away irrelevant logits/labels
+        label_cumsum = label_cumsum * (mask_o.reshape(mask_batch_size ,2047,1))
+        pred_cumsum = pred_cumsum * (mask_o.reshape(mask_batch_size, 2047,1) )
+        loss = loss +  (ot.sliced_wasserstein_distance(pred_cumsum.reshape(mask_batch_size*2047,2), 
+                                                       label_cumsum.reshape(mask_batch_size*2047,2), n_projections=4000, seed=gen) 
+                            )
+
+        return loss
