@@ -26,10 +26,7 @@ from torch.optim.optimizer import (
     ParamsT,
 )
 from typing import cast, Callable, List, Optional, Tuple, Union
-
 __all__ = ["ADOPT", "adopt"]
-
-
 
 
 class ADOPT(Optimizer):
@@ -448,7 +445,8 @@ def _multi_tensor_adopt(
             )
         else:
             torch._foreach_add_(device_state_steps, 1)
-            
+
+
 @_disable_dynamo_if_unsupported(single_tensor_fn=_single_tensor_adopt)
 def adopt(
     params: List[Tensor],
