@@ -1,14 +1,15 @@
 # mypy: allow-untyped-decorators
 # mypy: allow-untyped-defs
-from typing import cast, Callable, List, Optional, Tuple, Union
+from typing import cast, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
 
+from torch.utils._foreach_utils import _get_fused_kernels_supported_devices
+
 from torch.optim.optimizer import (
     _capturable_doc,
     _default_to_fused_or_foreach,
-    _device_dtype_check_for_fused,
     _differentiable_doc,
     _disable_dynamo_if_unsupported,
     _foreach_doc,
@@ -24,7 +25,7 @@ from torch.optim.optimizer import (
     Optimizer,
     ParamsT,
 )
-
+from typing import cast, Callable, List, Optional, Tuple, Union
 
 __all__ = ["ADOPT", "adopt"]
 
@@ -33,12 +34,12 @@ class ADOPT(Optimizer):
     def __init__(
         self,
         params: ParamsT,
-        lr: Union[float, Tensor] = 1e-3,
+        lr: Union[float, Tensor] = 5e-3,
         betas: Tuple[float, float] = (0.9, 0.9999),
         eps: float = 1e-6,
         clip_lambda: Optional[Callable[[int], float]] = lambda step: step**0.25,
         weight_decay: float = 0.0,
-        decouple: bool = False,
+        decoupled: bool = False,
         *,
         foreach: Optional[bool] = None,
         maximize: bool = False,
@@ -64,14 +65,13 @@ class ADOPT(Optimizer):
         if not 0.0 <= weight_decay:
             raise ValueError(f"Invalid weight_decay value: {weight_decay}")
 
-        self.clip_lambda = clip_lambda
-
         defaults = dict(
             lr=lr,
             betas=betas,
             eps=eps,
+            clip_lambda=clip_lambda,
             weight_decay=weight_decay,
-            decouple=decouple,
+            decoupled=decoupled,
             maximize=maximize,
             foreach=foreach,
             capturable=capturable,
@@ -91,6 +91,16 @@ class ADOPT(Optimizer):
             # Support AMP with FP16/BF16 model params which would need
             # higher prec copy of params to do update math in higher prec to
             # alleviate the loss of information.
+            fused_supported_devices = _get_fused_kernels_supported_devices()
+            if not all(
+                p.device.type in fused_supported_devices and torch.is_floating_point(p)
+                for pg in self.param_groups
+                for p in pg["params"]
+            ):
+                raise RuntimeError(
+                    "`fused=True` requires all the params to be floating point Tensors of "
+                    f"supported devices: {fused_supported_devices}."
+                )
             if foreach:
                 raise RuntimeError("`fused` and `foreach` cannot be `True` together.")
 
@@ -139,8 +149,6 @@ class ADOPT(Optimizer):
                 state = self.state[p]
                 # Lazy state initialization
                 if len(state) == 0:
-                    if group["fused"]:
-                        _device_dtype_check_for_fused(p)
                     # note(crcrpar): [special device hosting for step]
                     # Deliberately host `step` on CPU if both capturable and fused are off.
                     # This is because kernel launches are costly on CUDA and XLA.
@@ -225,9 +233,8 @@ class ADOPT(Optimizer):
                 beta1=beta1,
                 beta2=beta2,
                 lr=group["lr"],
-                clip_lambda=self.clip_lambda,
                 weight_decay=group["weight_decay"],
-                decouple=group["decouple"],
+                decoupled=group["decoupled"],
                 eps=group["eps"],
                 maximize=group["maximize"],
                 foreach=group["foreach"],
@@ -256,7 +263,7 @@ def _single_tensor_adopt(
     lr: Union[float, Tensor],
     clip_lambda: Optional[Callable[[int], float]],
     weight_decay: float,
-    decouple: bool,
+    decoupled: bool,
     eps: float,
     maximize: bool,
     capturable: bool,
@@ -284,9 +291,10 @@ def _single_tensor_adopt(
                 and param.device.type in capturable_supported_devices
             ), f"If capturable=True, params and state_steps must be on supported devices: {capturable_supported_devices}."
 
+        # update step
         step = step_t if capturable or differentiable else _get_value(step_t)
 
-        if weight_decay != 0 and not decouple:
+        if weight_decay != 0 and not decoupled:
             grad = grad.add(param, alpha=weight_decay)
 
         if torch.is_complex(param):
@@ -296,28 +304,25 @@ def _single_tensor_adopt(
             if exp_avg_sq is not None:
                 exp_avg_sq = torch.view_as_real(exp_avg_sq)
             param = torch.view_as_real(param)
-
+        
+        step = step_t if capturable or differentiable else _get_value(step_t)
         if step == 0:
             exp_avg_sq.addcmul_(grad, grad.conj())
             # update step
             step_t += 1
             continue
-
-        if weight_decay != 0 and decouple:
+        if weight_decay != 0 and decoupled:
             param.add_(param, alpha=-lr*weight_decay)
-
+        
         denom = torch.clamp(exp_avg_sq.sqrt(), eps)
+
         normed_grad = grad.div(denom)
         if clip_lambda is not None:
             clip = clip_lambda(step)
             normed_grad.clamp_(-clip, clip)
-
         exp_avg.lerp_(normed_grad, 1 - beta1)
-
         param.add_(exp_avg, alpha=-lr)
         exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1 - beta2)
-
-        # update step
         step_t += 1
 
 
@@ -336,7 +341,7 @@ def _multi_tensor_adopt(
     lr: Union[float, Tensor],
     clip_lambda: Optional[Callable[[int], float]],
     weight_decay: float,
-    decouple: bool,
+    decoupled: bool,
     eps: float,
     maximize: bool,
     capturable: bool,
@@ -390,14 +395,17 @@ def _multi_tensor_adopt(
         if maximize:
             device_grads = torch._foreach_neg(device_grads)  # type: ignore[assignment]
 
-        if weight_decay != 0 and not decouple:
-            # Re-use the intermediate memory (device_grads) already allocated for maximize
-            if maximize:
-                torch._foreach_add_(device_grads, device_params, alpha=weight_decay)
+        if weight_decay != 0:
+            if decoupled:
+                torch._foreach_add_(device_params, device_params, alpha=-lr*weight_decay)
             else:
-                device_grads = torch._foreach_add(  # type: ignore[assignment]
-                    device_grads, device_params, alpha=weight_decay
-                )
+                # Re-use the intermediate memory (device_grads) already allocated for maximize
+                if maximize:
+                    torch._foreach_add_(device_grads, device_params, alpha=weight_decay)
+                else:
+                    device_grads = torch._foreach_add(  # type: ignore[assignment]
+                        device_grads, device_params, alpha=weight_decay
+                    )
 
         if device_state_steps[0] == 0:
             torch._foreach_addcmul_(device_exp_avg_sqs, device_grads, device_grads)
@@ -414,9 +422,6 @@ def _multi_tensor_adopt(
                 torch._foreach_add_(device_state_steps, 1)
 
             continue
-
-        if weight_decay != 0 and decouple:
-            torch._foreach_add_(device_params, device_params, alpha=-lr*weight_decay)
 
         exp_avg_sq_sqrt = torch._foreach_sqrt(device_exp_avg_sqs)
         torch._foreach_maximum_(exp_avg_sq_sqrt, eps)
@@ -447,6 +452,7 @@ def _multi_tensor_adopt(
             torch._foreach_add_(device_state_steps, 1)
 
 
+
 @_disable_dynamo_if_unsupported(single_tensor_fn=_single_tensor_adopt)
 def adopt(
     params: List[Tensor],
@@ -467,9 +473,9 @@ def adopt(
     beta1: float,
     beta2: float,
     lr: Union[float, Tensor],
-    clip_lambda: Optional[Callable[[int], float]],
+      clip_lambda: Optional[Callable[[int], float]],
     weight_decay: float,
-    decouple: bool,
+    decoupled: bool,
     eps: float,
     maximize: bool,
 ):
@@ -523,9 +529,8 @@ def adopt(
         beta1=beta1,
         beta2=beta2,
         lr=lr,
-        clip_lambda=clip_lambda,
         weight_decay=weight_decay,
-        decouple=decouple,
+        decoupled=decoupled,
         eps=eps,
         maximize=maximize,
         capturable=capturable,
