@@ -41,7 +41,7 @@ class CrossEntropyplusEnergy(Trainer):
 
         # CE Loss 
         loss_fct = torch.nn.CrossEntropyLoss()
-        ce_loss = loss_fct(logits.reshape(mask_batch_size*2047,8) * mask, label_one_hot.reshape(mask_batch_size*2047,8) * mask).mean()
+        loss = loss_fct(logits.reshape(mask_batch_size*2047,8) * mask, label_one_hot.reshape(mask_batch_size*2047,8) * mask).mean()
         # Energy Loss
         probabilities = F.softmax(logits, dim=-1)
 
@@ -59,18 +59,13 @@ class CrossEntropyplusEnergy(Trainer):
         pred_transformed = torch.matmul(probabilities, energy_matrix)
         label_one_hot = F.one_hot(labels.long(), num_classes=8).float()
         label_transformed = torch.matmul(label_one_hot, energy_matrix)
-        label_transformed = label_transformed * (mask_o.reshape(mask_batch_size ,2047,1))
-        pred_transformed = pred_transformed * (mask_o.reshape(mask_batch_size, 2047, 1) )
-        label_cumsum = label_transformed.cumsum(2)
-        pred_cumsum = pred_transformed.cumsum(2)
-
-        #mask away irrelevant logits/labels
-        label_cumsum = label_cumsum * (mask_o.reshape(mask_batch_size ,2047,1))
-        pred_cumsum = pred_cumsum * (mask_o.reshape(mask_batch_size, 2047,1) )
-        diff = pred_cumsum - label_cumsum
+        label_transformed = label_transformed.reshape(mask_batch_size ,2047) * (mask_o.reshape(mask_batch_size ,2047))
+        pred_transformed = pred_transformed.reshape(mask_batch_size ,2047) * (mask_o.reshape(mask_batch_size, 2047) )
         
-        energy_loss = torch.abs(diff).sum(2).mean()
-        final_loss = ce_loss +  energy_loss
+        loss_l1 = nn.L1Loss()
+
+        energy_loss = loss_l1(pred_transformed.sum(1), label_transformed.sum(1))
+
+        final_loss =  energy_loss + loss
 
         return final_loss
-
