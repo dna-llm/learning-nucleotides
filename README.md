@@ -13,9 +13,14 @@ Recent years have seen a flurry of generative nucleotide models, still mostly of
 
 
 ## Authors and contributors
-The original repo was a private repositopry of Hassan Ahmed Hassan and had additional Contributors, which will also be authors of the preprint. 
+The original repo was a private branch hosted on Hassan's account which had orginals contributors contributions, so please be aware this repo is not a true representation whos done the work. 
 
-Hassan Ahmed Hassan, Kyle Puhger, Ali Saadat, Alexander Chen, Maximilian Sprang
+Contributers: 
+- Hassan Ahmed Hassan
+- Kyle Puhger
+- Ali Saadat
+- Alexander Chen
+- Maximilian Sprang
 
 
 ## Project Objectives and downstream plan
