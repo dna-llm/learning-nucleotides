@@ -51,10 +51,10 @@ Potential downstream applications for Nucleotide-only Language Models (LLMs) inc
 
 ### 2D representations of viral genomes visualizes the function space a viral family occupies. 
 
-![virus-rep](images/single_family.gif)
+![virus-rep](images/movie(5).gif)
 **Figure 1.** All samples of a representative viral family converted to a 2D density plot.
 
-![virome](images/virome.gif)
+![virome](images/movie(7).gif)
 **Figure 2.** All samples of viruses contained within NCBI represented by a 2D density plot.
 
 ![virus-family](images/Norwalk_virus_full_length.svg)
