@@ -13,7 +13,7 @@ Recent years have seen a flurry of generative nucleotide models, still mostly of
 
 
 ## Authors and contributors
-The original repo was a private branch hosted on Hassan's account which had orginals contributors contributions, so please be aware this repo is not a true representation whos done the work. 
+The original repo was a private branch hosted on Hassan's account which had the orginals contributors contributions, so please be aware this repo is not a true representation whos done the work. 
 
 Contributers: 
 - Hassan Ahmed Hassan
