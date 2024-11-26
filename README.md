@@ -46,18 +46,18 @@ Potential downstream applications for Nucleotide-only Language Models (LLMs) inc
 
 ### 2D representations of viral genomes visualizes the function space a viral family occupies. 
 
-![virus-family](images\Norwalk_virus_full_length.svg)
+![virus-family](images/Norwalk_virus_full_length.svg)
 **Figure 1.** All samples of the Norwalk-virus species available in our dataset as of 2024. There is a clear pattern that can be opbserved for all sequences, it deteriorates towards the end, as to the cumulative nature of this representation. 
 
 ### A loss based on 2D-representation works and converges similar to classical losses such as CE. 
 
-![pythia-panel](images\panel-plot0.01-pythia.png)
+![pythia-panel](images/panel-plot0.01-pythia.png)
 **Figure 2.** Exemplary runs of the Transformer Architecture Model Pythia. Model parameter sizes
 reach from 1.2M to 302M.
 
 ### 2D loss allows the generation of sequences that are more similar to natural ones. 
 
-![pythia-panel](images\pythia_loss_tsne.png)
+![pythia-panel](images/pythia_loss_tsne.png)
 **Figure 3.** Comparison of generated and natural sequences in the Pythia model trained with different
 pretraining losses. Natural sequences are colored blue. Seqs generated from Pythia with CE loss
 orange, complement loss green, headless loss red, 2D and Gaussian distance violet, and 2D and MSE
