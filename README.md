@@ -9,7 +9,7 @@
 
 ## Abstract
 
-  Recent years have seen a flurry of generative nucleotide models, still mostly of limited utility. In this short paper, we extend the theoretical unification of ecological and evolutionary change by Duthie \& Luque to the the problem of synthetic DNA models. Through this extension, we provide, from first principles, methods for training improved models, grouping species as well as creating a road map to scale. 
+Recent years have seen a flurry of generative nucleotide models, still mostly of limited utility. In this short paper, we extend the theoretical unification of ecological and evolutionary change by [Duthie \& Luque](https://arxiv.org/abs/2409.10766) to the the problem of synthetic DNA models. Through this extension, we provide, from first principles, methods for training improved models, grouping species as well as creating a road map to scale. 
 
 
 ## Authors and contributors
