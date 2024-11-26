@@ -2,10 +2,9 @@
 
 - [Abstract](#abstract)
 - [Project Objectives and downstream plan](#project-objectives-and-downstream-plan)
-  - [Workflow Modeling](#workflow-modeling)
-  - [Workflow Datasets](#workflow-datasets)
-- [Prior Work](#prior-work)
+- [First results](#first-results)
 - [Datasets](#datasets)
+- [Prior Work](#prior-work)
 
 ## Abstract
 
@@ -26,8 +25,9 @@ Contributers:
 ## Project Objectives and downstream plan
 
 By exploring these work packages... 
-1. **Ideal Loss:** What's the ideal loss function for a nucleotide model? What are the trade-offs with regard to each model type in this context? What do we lose, and what do we gain, information-wise? What sections of a sequence do each of the losses emphasize? Can we combine different losses? The losses in our experiments include but are not limited to Cross Entropy, Reverse Complements, Chaos Game Representation, Persistent Homology, Headless Loss, and 2D Line. See: [“Can we learn to generate viral genomes?”](https://huggingface.co/spaces/Hack90/virus_explorer)  for chart representation of those metrics.
-2. **Ideal Model Architecture:** As mentioned above, we are interested in testing different models in multiple combinations with our losses. So, the questions above will apply to the different architectures, too. Model types we plan to use include Transformer-based, SSM-based, and mixed Models, as well as convolution-based models such as the Multiresolution Convolutional memory model (MultiresConv).
+1. **Ideal Loss:** What's the ideal loss function for a nucleotide model?Are there trade-offs with regard to model architecture? What sections of a sequence do each of the losses emphasize? Can we combine different losses? The losses in our experiments include but are not limited to Cross Entropy, Reverse Complements, Headless Loss and 2D Loss, as well as Energy based losses such as total, direct and potential energy by nucleotide. We plan to include a wavelet based loss and persistant homology loss.
+See: [“Can we learn to generate viral genomes?”](https://huggingface.co/spaces/Hack90/virus_explorer) for chart representation of some of those metrics.
+2. **Ideal Model Architecture:** We are interested in testing different models in combination with our losses. So, the questions above will apply to the different architectures, too. Model types we plan to use include Transformer-based, SSM-based, and mixed Models, as well as convolution-based models such as the Multiresolution Convolutional memory model (MultiresConv).
 3. **Ideal Dataset:** How much redundancy is there in a genome dataset? What is the optimum learning strategy? How well is topology preserved between different samples and species?
 4. **Maximum Scale, optimal parameters:** How do each of the previous steps change with scale? Are there clear scaling laws, and can these be applied to get an optimal large foundation model?
 
