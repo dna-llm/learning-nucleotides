@@ -1,0 +1,56 @@
+import torch
+from transformers import Trainer
+
+
+class Discrete_CE_Loss(Trainer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logits_method = None
+
+    def get_logits(self, model_output):
+        if self.logits_method is None:
+            if isinstance(model_output, tuple):
+                self.logits_method = "tuple"
+            elif hasattr(model_output, "logits"):
+                self.logits_method = "attribute"
+            else:
+                self.logits_method = "tensor"
+
+        if self.logits_method == "tuple":
+            return model_output[0]
+        elif self.logits_method == "attribute":
+            return model_output.logits
+        else:
+            return model_output
+
+    def compute_loss(self, model, inputs):
+
+        x= input_ids
+        should_noise = inputs['attention_mask']
+        scheduler = torch.linspace(
+            1 / 1024, 1, steps=1024, dtype=torch.float32
+        )  
+        t = torch.randint(0, 1024, [x.size(0)], device=x.device)
+        t=t.unsqueeze(1)
+        mask_prob = scheduler[t].expand(-1, x.shape[1])
+        will_mask = torch.bernoulli(mask_prob).to(dtype=torch.bool)
+      
+        if should_noise is not None:
+            will_mask &= should_noise.bool()
+
+        noised_x = x.clone()
+        noised_x[will_mask] = torch.Tensor([2]).long()
+
+        logits =model(noised_x, t.flatten())  
+
+        target = x.clone()
+
+        target[noised_x != 1] = -100
+
+        loss = torch.nn.CrossEntropyLoss(
+            input=logits.transpose(-1, -2),
+            target=target,
+            reduction="mean",
+        )
+
+        return loss
