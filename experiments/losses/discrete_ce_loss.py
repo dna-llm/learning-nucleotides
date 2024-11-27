@@ -26,7 +26,6 @@ class Discrete_CE_Loss(Trainer):
     def compute_loss(self, model, inputs):
 
         x= inputs['input_ids']
-        print(x.shape)
         should_noise = inputs['attention_mask']
         scheduler = torch.linspace(
             1 / 1024, 1, steps=1024, dtype=torch.float32, device=x.device
@@ -41,7 +40,7 @@ class Discrete_CE_Loss(Trainer):
 
         noised_x = x.clone()
         noised_x[will_mask] = torch.Tensor([2]).long()
-        print(t.shape)
+      
         logits =model(noised_x, t.flatten())  
 
         target = x.clone()
