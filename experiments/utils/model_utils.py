@@ -55,9 +55,9 @@ def load_pythia(config_name: str, **kwargs) -> AutoModelForCausalLM:
 def load_discrete(**kwargs):
     model =  ConvNet(
             vocab_size=8,
-            hidden_dim=768,
+            hidden_dim=256,
             num_timesteps=2048,
-            num_layers=6,
+            num_layers=12,
         )
 
     return model
