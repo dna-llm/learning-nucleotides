@@ -45,7 +45,7 @@ def load_loss(loss_type: str) -> Trainer:
      #   "two_d": TwoDRepLoss,
         "vae_loss": VAELoss,
      #   "two_d_ce": TwoDRepL2CELoss, 
-        "discrete_ce_loss": Discrete_CE_Loss
+        "discrete_ce_loss": Discrete_CE_Loss,
     }
 
     return losses[loss_type]
