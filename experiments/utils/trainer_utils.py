@@ -91,8 +91,8 @@ def load_datasets(
             print(f"After filtering: {len(ds['train'])}")
             sequence = "2D_Sequence_Interpolated"
         if remove_columns: 
-            ds = ds.select_columns(['input_ids', 'attention_mask', 'index'])
-            ds.set_format(type="torch")
+            ds_new = ds.select_columns(['id','input_ids', 'attention_mask'])
+            ds_new.set_format(type="torch")
         if not is_pretrained:
             ds["train"] = ds["train"].select_columns(["id", sequence])
             ds = ds.map(pad_input_ids, remove_columns=ds["train"].column_names)
