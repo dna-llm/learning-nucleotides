@@ -46,6 +46,9 @@ def run_model(config_file: str) -> None:
     logger.info(
         f"Training Data: {ds_train}"
     )
+    print(
+        f"Training Data: {ds_train}"
+    )
     logger.info(
         f"Training model: {cfg.model.name}-{model_param_count} with loss: {cfg.training.loss_type}"
     )
