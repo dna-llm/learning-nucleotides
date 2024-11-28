@@ -57,7 +57,7 @@ def load_discrete(**kwargs):
             vocab_size=8,
             hidden_dim=256,
             num_timesteps=2048,
-            num_layers=12,
+            num_layers=6,
         )
 
     return model
