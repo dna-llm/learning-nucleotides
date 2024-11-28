@@ -24,7 +24,7 @@ def run_model(config_file: str) -> None:
     cfg = ExperimentConfig.from_yaml(config_file)
     model = load_model(**cfg.model.model_dump())
     print(model)
-    model_param_count = format_param_count(model.num_parameters())
+    model_param_count = format_param_count(sum(p.numel() for p in model.parameters()))
     output_dir = f"virus-{cfg.model.name}-{model_param_count}-{cfg.model.max_seq_len}-{cfg.training.loss_type}"
     api = HfApi()
     repo_name = f"DNA-LLM/{output_dir}"
