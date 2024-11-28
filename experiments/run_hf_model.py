@@ -43,7 +43,9 @@ def run_model(config_file: str) -> None:
         is_pretrained=cfg.model.is_pretrained,
         use_2d_seq=cfg.data.use_2d_seq,
     )
-
+    logger.info(
+        f"Training Data: {ds_train}"
+    )
     logger.info(
         f"Training model: {cfg.model.name}-{model_param_count} with loss: {cfg.training.loss_type}"
     )
