@@ -30,6 +30,7 @@ def load_model(name: str, **kwargs) -> torch.nn.Module:
         "evo": load_evo,
         "wavelet": load_wavelet,
         "vae": load_vae,
+        "discrete": load_discrete
     }
 
     return model_loaders[name.lower()](**kwargs)
@@ -42,7 +43,8 @@ def load_loss(loss_type: str) -> Trainer:
         "headless": Headless,
         "two_d": TwoDRepLoss,
         "vae_loss": VAELoss,
-        "two_d_ce": TwoDRepL2CELoss
+        "two_d_ce": TwoDRepL2CELoss, 
+        "discrete_ce_loss": Discrete_CE_Loss
     }
 
     return losses[loss_type]
@@ -67,6 +69,7 @@ def load_datasets(
     test_path: str,
     is_pretrained: bool = True,
     use_2d_seq: bool = False,
+    remove_columns:bool = False,
 ) -> tuple[DatasetDict, DatasetDict, DatasetDict]:
     train = load_dataset(train_path)
     val = load_dataset(val_path)
@@ -86,6 +89,8 @@ def load_datasets(
             ds = ds.filter(filter_bad_2d)
             print(f"After filtering: {len(ds['train'])}")
             sequence = "2D_Sequence_Interpolated"
+        if remove_columns: 
+            ds = ds.select_columns(['input_ids', 'attention_mask', 'index'])
         if not is_pretrained:
             ds["train"] = ds["train"].select_columns(["id", sequence])
             ds = ds.map(pad_input_ids, remove_columns=ds["train"].column_names)
