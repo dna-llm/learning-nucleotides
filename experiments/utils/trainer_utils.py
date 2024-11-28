@@ -98,7 +98,7 @@ def load_datasets(
             ds["train"] = ds["train"].select_columns(["id", sequence])
             ds = ds.map(pad_input_ids, remove_columns=ds["train"].column_names)
 
-    return train, val, test
+    return new_ds #train, val, test
 
 
 def tokenize_function(examples, tokenizer, max_length: int):
