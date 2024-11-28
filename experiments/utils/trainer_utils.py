@@ -132,7 +132,7 @@ def load_trainer(
         dataloader_num_workers=num_workers,
         dataloader_prefetch_factor=2,
         report_to=[],
-        remove_unused_columns=is_pretrained or remove_columns,
+        remove_unused_columns=not(remove_columns),#is_pretrained or
         push_to_hub=True,
         hub_strategy="all_checkpoints",
         hub_model_id=f"DNA-LLM/{output_dir}",
