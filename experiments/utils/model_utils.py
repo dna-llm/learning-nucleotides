@@ -52,8 +52,7 @@ def load_pythia(config_name: str, **kwargs) -> AutoModelForCausalLM:
     return model
 
 #testing
-def load_discrete(config_name: str, **kwargs) -> AutoModelForCausalLM:
-    config.vocab_size = 8  # tokenizer.vocab_size
+def load_discrete(**kwargs):
     model =  ConvNet(
             vocab_size=8,
             hidden_dim=768,
