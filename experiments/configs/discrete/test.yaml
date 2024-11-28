@@ -14,7 +14,7 @@ data:
 
 training:
   num_train_epochs: 1
-  batch_size: 48
+  batch_size: 96
   learning_rate: 0.00005
   warmup_steps: 10
   loss_type: "discrete_ce_loss"
