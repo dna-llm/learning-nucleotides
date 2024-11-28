@@ -8,7 +8,8 @@ from losses import (
     StandardLoss,
     TwoDRepLoss,
     VAELoss,
-    TwoDRepL2CELoss
+    Discrete_CE_Loss
+ #   TwoDRepL2CELoss
 )
 from transformers import AutoTokenizer, Trainer, TrainingArguments
 
@@ -18,7 +19,7 @@ from .model_utils import (
     load_pythia,
     load_vae,
     load_wavelet,
-load_discrete
+    load_discrete
 )
 from .adopt import ADOPT
 
@@ -41,9 +42,9 @@ def load_loss(loss_type: str) -> Trainer:
         "complement": ComplementLoss,
         "cross_entropy": StandardLoss,
         "headless": Headless,
-        "two_d": TwoDRepLoss,
+     #   "two_d": TwoDRepLoss,
         "vae_loss": VAELoss,
-        "two_d_ce": TwoDRepL2CELoss, 
+     #   "two_d_ce": TwoDRepL2CELoss, 
         "discrete_ce_loss": Discrete_CE_Loss
     }
 
