@@ -70,7 +70,7 @@ def load_datasets(
     test_path: str,
     is_pretrained: bool = True,
     use_2d_seq: bool = False,
-    remove_columns:bool = False,
+    remove_columns:bool = True,
 ) -> tuple[DatasetDict, DatasetDict, DatasetDict]:
     train = load_dataset(train_path)
     val = load_dataset(val_path)
@@ -132,7 +132,7 @@ def load_trainer(
         dataloader_num_workers=num_workers,
         dataloader_prefetch_factor=2,
         report_to=[],
-        remove_unused_columns=not(remove_columns),#is_pretrained or
+        remove_unused_columns=False,#is_pretrained or
         push_to_hub=True,
         hub_strategy="all_checkpoints",
         hub_model_id=f"DNA-LLM/{output_dir}",
