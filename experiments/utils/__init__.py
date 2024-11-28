@@ -8,5 +8,6 @@ from .model_utils import (
     load_tokenizer,
     load_vae,
     load_wavelet,
+load_discrete
 )
 from .trainer_utils import load_datasets, load_loss, load_model, load_trainer
