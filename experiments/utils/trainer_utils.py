@@ -18,6 +18,7 @@ from .model_utils import (
     load_pythia,
     load_vae,
     load_wavelet,
+load_discrete
 )
 from .adopt import ADOPT
 
