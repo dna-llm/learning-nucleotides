@@ -17,6 +17,6 @@ training:
   batch_size: 48
   learning_rate: 0.00005
   warmup_steps: 10
-  loss_type: "Discrete_CE_Loss"
+  loss_type: "discrete_ce_loss"
   logging_steps: 100
   logging_dir: "./logs"
