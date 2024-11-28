@@ -28,9 +28,9 @@ class Discrete_CE_Loss(Trainer):
         x= inputs['input_ids']
         should_noise = inputs['attention_mask']
         scheduler = torch.linspace(
-            1 / 1024, 1, steps=1024, dtype=torch.float32, device=x.device
+            1 / 2048, 1, steps=2048, dtype=torch.float32, device=x.device
         )  
-        t = torch.randint(0, 1024, [x.size(0)], device=x.device)
+        t = torch.randint(0, 2024, [x.size(0)], device=x.device)
         t=t.unsqueeze(1)
         mask_prob = scheduler[t].expand(-1, x.shape[1])
         will_mask = torch.bernoulli(mask_prob).to(dtype=torch.bool)
