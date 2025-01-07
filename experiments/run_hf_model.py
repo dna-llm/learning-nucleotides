@@ -16,9 +16,13 @@ from utils import (
     upload_checkpoints,
 )
 
+from datasets import disable_caching
+import os
+os.environ['HF_HOME']  = "/user/hassanahmed.hassan/u12592/.project/dir.lustre-grete/learning-nucleoTIDEs/.cache/"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+HF_TOKEN = "hf_YgvALXVcXVwveUYsBgSouIQVonhcAuRgy"
 
 def run_model(config_file: str) -> None:
     cfg = ExperimentConfig.from_yaml(config_file)

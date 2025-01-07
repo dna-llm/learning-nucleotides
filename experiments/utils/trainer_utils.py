@@ -8,6 +8,8 @@ from losses import (
     StandardLoss,
     TwoDRepLoss,
     VAELoss,
+    TwoDRepL2CELoss, 
+    CrossEntropyplusEnergy
 )
 from transformers import AutoTokenizer, Trainer, TrainingArguments
 
@@ -28,6 +30,7 @@ def load_model(name: str, **kwargs) -> torch.nn.Module:
         "evo": load_evo,
         "wavelet": load_wavelet,
         "vae": load_vae,
+        "two_d_plus_ce": TwoDRepL2CELoss
     }
 
     return model_loaders[name.lower()](**kwargs)
@@ -39,7 +42,9 @@ def load_loss(loss_type: str) -> Trainer:
         "cross_entropy": StandardLoss,
         "headless": Headless,
         "two_d": TwoDRepLoss,
+        "two_d_plus_ce": TwoDRepL2CELoss,
         "vae_loss": VAELoss,
+        "ce_plus_energy": CrossEntropyplusEnergy
     }
 
     return losses[loss_type]
@@ -120,6 +125,7 @@ def load_trainer(
         warmup_steps=warmup_steps,
         logging_steps=logging_steps,
         logging_dir="./logs",
+        save_steps=20000, 
         dataloader_num_workers=num_workers,
         dataloader_prefetch_factor=2,
         report_to=[],
