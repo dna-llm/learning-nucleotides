@@ -13,7 +13,13 @@ experiment_one/figures/
 experiment_one/trainer_state.json/
 experiment_one/outputs_old/
 slurm_out/              
-experiments/slurm/sbatch_array_2d.sh
+experiments/slurm/sbatch_array_*
+experiments/configs copy
+
+# file types
+*.parquet
+*.zip
+
 
 # IDE temp files #
 .vscode/
