@@ -2,21 +2,32 @@
 
 - [Abstract](#abstract)
 - [Project Objectives and downstream plan](#project-objectives-and-downstream-plan)
-  - [Workflow Modeling](#workflow-modeling)
-  - [Workflow Datasets](#workflow-datasets)
-- [Prior Work](#prior-work)
+- [First results](#first-results)
 - [Datasets](#datasets)
+- [Prior Work](#prior-work)
 
 ## Abstract
 
-  Recent years have seen a flurry of generative nucleotide models, still mostly of limited utility. In this short paper, we extend the theoretical unification of ecological and evolutionary change by Duthie1 \& Luque to the the problem of synthetic DNA models. Through this extension, we provide, from first principles, methods for training improved models, grouping species as well as creating a road map to scale. 
+Recent years have seen a flurry of generative nucleotide models, still mostly of limited utility. In this short paper, we extend the theoretical unification of ecological and evolutionary change by [Duthie \& Luque](https://arxiv.org/abs/2409.10766) to the the problem of synthetic DNA models. Through this extension, we provide, from first principles, methods for training improved models, grouping species as well as creating a road map to scale. 
+
+
+## Authors and contributors
+The original repo was a private branch hosted on Hassan's account which had the orginals collaborators contributions, so please be aware this repo is not a true quantitative representation of contributions. 
+
+Contributers: 
+- Hassan Ahmed Hassan
+- Kyle Puhger
+- Ali Saadat
+- Alexander Chen
+- Maximilian Sprang
 
 
 ## Project Objectives and downstream plan
 
 By exploring these work packages... 
-1. **Ideal Loss:** What's the ideal loss function for a nucleotide model? What are the trade-offs with regard to each model type in this context? What do we lose, and what do we gain, information-wise? What sections of a sequence do each of the losses emphasize? Can we combine different losses? The losses in our experiments include but are not limited to Cross Entropy, Reverse Complements, Chaos Game Representation, Persistent Homology, Headless Loss, and 2D Line. See: [“Can we learn to generate viral genomes?”](https://huggingface.co/spaces/Hack90/virus_explorer)  for chart representation of those metrics.
-2. **Ideal Model Architecture:** As mentioned above, we are interested in testing different models in multiple combinations with our losses. So, the questions above will apply to the different architectures, too. Model types we plan to use include Transformer-based, SSM-based, and mixed Models, as well as convolution-based models such as the Multiresolution Convolutional memory model (MultiresConv).
+1. **Ideal Loss:** What's the ideal loss function for a nucleotide model?Are there trade-offs with regard to model architecture? What sections of a sequence do each of the losses emphasize? Can we combine different losses? The losses in our experiments include but are not limited to Cross Entropy, Reverse Complements, Headless Loss and 2D Loss, as well as Energy based losses such as total, direct and potential energy by nucleotide. We plan to include a wavelet based loss and persistant homology loss.
+See: [“Can we learn to generate viral genomes?”](https://huggingface.co/spaces/Hack90/virus_explorer) for chart representation of some of those metrics.
+2. **Ideal Model Architecture:** We are interested in testing different models in combination with our losses. So, the questions above will apply to the different architectures, too. Model types we plan to use include Transformer-based, SSM-based, and mixed Models, as well as convolution-based models such as the Multiresolution Convolutional memory model (MultiresConv).
 3. **Ideal Dataset:** How much redundancy is there in a genome dataset? What is the optimum learning strategy? How well is topology preserved between different samples and species?
 4. **Maximum Scale, optimal parameters:** How do each of the previous steps change with scale? Are there clear scaling laws, and can these be applied to get an optimal large foundation model?
 
@@ -30,11 +41,38 @@ Potential downstream applications for Nucleotide-only Language Models (LLMs) inc
 
 - Encoders for sequence comparisons and classifications
 - Base models for fine-tuned sequence generators and predictors, such as:
+  - DNA sequence risk scoring
   - Bacteria specific phage generators
   - Whole genome generators for de novo organisms
   - Antibiotic resistance classifiers based on bacterial plasmid DNA
 - Sequence quality predictors for both small sequences (as found in functional genomics) and large sequences (as found in whole-genome sequencing projects)
 
+## Initial results 
+
+### 2D representations of viral genomes visualizes the function space a viral family occupies. 
+
+![virus-rep](images/movie_5.gif)
+**Figure 1.** All samples of a representative viral family converted to a 2D density plot.
+
+![virome](images/movie_7.gif)
+**Figure 2.** All samples of viruses contained within NCBI represented by a 2D density plot.
+
+![virus-family](images/Norwalk_virus_full_length.svg)
+**Figure 3.** All samples of the Norwalk-virus species available in our dataset as of 2024. There is a clear pattern that can be opbserved for all sequences, it deteriorates towards the end, as to the cumulative nature of this representation. 
+
+### A loss based on 2D-representation works and converges similar to classical losses such as CE. 
+
+![pythia-panel](images/panel-plot0.01-pythia.png)
+**Figure 4.** Exemplary runs of the Transformer Architecture Model Pythia. Model parameter sizes
+reach from 1.2M to 302M.
+
+### 2D loss allows the generation of sequences that are more similar to natural ones. 
+
+![pythia-panel](images/pythia_loss_tsne.png)
+**Figure 5.** Comparison of generated and natural sequences in the Pythia model trained with different
+pretraining losses. Natural sequences are colored blue. Seqs generated from Pythia with CE loss
+orange, complement loss green, headless loss red, 2D and Gaussian distance violet, and 2D and MSE
+brown.
 
 ## Datasets
 
@@ -60,16 +98,4 @@ In addition to the RefSeq dataset, we'll create a DNA-natural language descripti
 
 
 ## Prior Work
-
-Currently, most nucleotide-based models are either: phylum-specific, trained on either small high-quality datasets or large low-quality ones. Even [Evo](https://github.com/evo-design/evo?tab=readme-ov-file) does not take into account the topological diversity of the training data. This project aims to create a high-quality dataset comprising various species with varying sequence lengths
-
-| Model                             | Parameters | Dataset                                                                                               | Dataset size | Context Window | Our improvements                                      | Code                                                                                                                                                 | Weights                                                                                                                                                                    | Huggingface                                                                                                                                                                | Model Type                                                                                                                                                                 |
-| --------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- | ------------ | -------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HyenaDNA                          | 0.44M-6.6M | [Human Refrence Genome](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001405.26/)               | 3.1B         | 1k-1M          | Larger dataset + Longer context windows + Multispecie | [HazyResearch/hyena-dna](https://github.com/HazyResearch/hyena-dna)                                                                                  | [LongSafari](https://huggingface.co/LongSafari)                                                                                                                            | [LongSafari](https://huggingface.co/LongSafari)                                                                                                                            | SSM                                                                                                                                                                        |
-| DNABert2                          | 117M       | [Multi-species genome](https://arxiv.org/pdf/2306.15006.pdf#table.7)                                  | 32.49B       | 512            | Larger dataset + Longer context windows               | [Zhihan1996/DNABERT_2](https://github.com/Zhihan1996/DNABERT_2)                                                                                      | [DNABERT-2-117M](https://huggingface.co/zhihan1996/DNABERT-2-117M)                                                                                                         | [DNABERT-2-117M](https://huggingface.co/zhihan1996/DNABERT-2-117M)                                                                                                         | Encoder - Transformer                                                                                                                                                      |
-| Nucleotide Transformer            | 50M-2.5B   | [Multi-species genome](https://www.biorxiv.org/content/10.1101/2023.01.11.523679v2.full.pdf#A.2)      | 1T           | 2024           | Larger dataset + Longer context windows               | [Nucleotide Transformer: Building and Evaluating Robust Foundation Models for Human Genomics](https://github.com/instadeepai/nucleotide-transformer) | [InstaDeepAI (InstaDeep Ltd)](https://huggingface.co/InstaDeepAI)                                                                                                          | [https://huggingface.co/InstaDeepAI](https://huggingface.co/InstaDeepAI)                                                                                                   | Decoder - Transformer                                                                                                                                                      |
-| Genomic Pre-trained Network (GPN) | 30M ~      | [Single Specie(Brassicales)](https://huggingface.co/datasets/songlab/genomes-brassicales-balanced-v1) | 1.23GB       | 512            | Larger dataset + Longer context windows               | [songlab-cal/gpn](https://github.com/songlab-cal/gpn)                                                                                                | No weights released                                                                                                                                                        |                                                                                                                                                                            | Encoder - Transformer                                                                                                                                                      |
-| Gena-LM                           | 110M       | Human + Multispecis genome                                                                            | ~10B         | 512-4096       | Larger dataset + Longer context windows               | [GitHub - AIRI-Institute/GENA_LM](https://github.com/AIRI-Institute/GENA_LM)                                                                         | [AIRI - Artificial Intelligence Research Institute](https://huggingface.co/AIRI-Institute)                                                                                 | [AIRI - Artificial Intelligence Research Institute](https://huggingface.co/AIRI-Institute)                                                                                 | Encoder - Transformer                                                                                                                                                      |
-| Grover                            | 350M       | [HG19](https://zenodo.org/records/8373053)                                                            | 2.3GiB       | 512            | Larger dataset + Longer context windows               | [GROVER pretrained DNA language model of the human genome.](https://zenodo.org/records/8373117)                                                      | [https://zenodo.org/records/8373117](https://zenodo.org/records/8373117)                                                                                                   | N/A                                                                                                                                                                        | Encoder - Transformer                                                                                                                                                      |
-| EVO                               | 7B         | [OpenGenome](https://www.biorxiv.org/content/10.1101/2024.02.27.582234v1.full.pdf#appendix.B)         | 250B         | 8k-131k        | Larger dataset + Longer context windows + Multispecie | [EVO](https://github.com/evo-design/evo?tab=readme-ov-file)                                                                                          | [togethercomputer/evo-1-131k-base](https://huggingface.co/togethercomputer/evo-1-131k-base)                                                                                | [togethercomputer/evo-1-131k-base](https://huggingface.co/togethercomputer/evo-1-131k-base)                                                                                | SSM - Transformer Hybrid                                                                                                                                                   |
-| Caduceus                          | 30M        | [Human Refrence Genome](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001405.26/)               | 3.1B         | 131k           | Larger dataset + Longer context windows + Multispecie | [kuleshov-group/caduceus](https://github.com/kuleshov-group/caduceus?tab=readme-ov-file)                       | [https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350](https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350) | [kuleshov-group/caduceus](https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350) | [kuleshov-group/caduceus](https://huggingface.co/collections/kuleshov-group/caduceus-65dcb89b4f54e416ef61c350) |
+See [Benegas et al. 2024](https://arxiv.org/abs/2407.11435) for a review of all generative models of DNA sequences using a language modelling paradigm for training. 

@@ -6,7 +6,7 @@ from losses import (
     ComplementLoss,
     Headless,
     StandardLoss,
-    TwoDRepLoss,
+  #  TwoDRepLoss,
     VAELoss,
     TwoDRepL2CELoss, 
     CrossEntropyplusEnergy
@@ -19,6 +19,7 @@ from .model_utils import (
     load_pythia,
     load_vae,
     load_wavelet,
+    load_discrete
 )
 from .adopt import ADOPT
 
@@ -69,6 +70,7 @@ def load_datasets(
     test_path: str,
     is_pretrained: bool = True,
     use_2d_seq: bool = False,
+    remove_columns:bool = True,
 ) -> tuple[DatasetDict, DatasetDict, DatasetDict]:
     train = load_dataset(train_path)
     val = load_dataset(val_path)
@@ -79,7 +81,7 @@ def load_datasets(
             return sum(example["2D_Sequence_Interpolated"][0]) != 0
         else:
             return False
-
+    new_ds = []
     for ds in [train, val, test]:
         ds.set_format(type="torch")
         print(f"Before filtering: {len(ds['train'])}")
@@ -88,11 +90,15 @@ def load_datasets(
             ds = ds.filter(filter_bad_2d)
             print(f"After filtering: {len(ds['train'])}")
             sequence = "2D_Sequence_Interpolated"
+        if remove_columns: 
+            ds = ds.select_columns(['id','input_ids', 'attention_mask'])
+            ds.set_format(type="torch")
+            new_ds.append(ds)
         if not is_pretrained:
             ds["train"] = ds["train"].select_columns(["id", sequence])
             ds = ds.map(pad_input_ids, remove_columns=ds["train"].column_names)
 
-    return train, val, test
+    return new_ds #train, val, test
 
 
 def tokenize_function(examples, tokenizer, max_length: int):
@@ -129,7 +135,7 @@ def load_trainer(
         dataloader_num_workers=num_workers,
         dataloader_prefetch_factor=2,
         report_to=[],
-        remove_unused_columns=is_pretrained,
+        remove_unused_columns=False,#is_pretrained or
         push_to_hub=True,
         hub_strategy="all_checkpoints",
         hub_model_id=f"DNA-LLM/{output_dir}",

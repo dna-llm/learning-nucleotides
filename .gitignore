@@ -15,10 +15,14 @@ experiment_one/outputs_old/
 slurm_out/              
 experiments/slurm/sbatch_array_*
 experiments/configs copy
+experiments/slurm/sbatch_array_2d.sh
+notebooks/outputs/
+notebooks/trainer_state.json/
 
 # file types
 *.parquet
 *.zip
+
 
 
 # IDE temp files #
@@ -38,6 +42,8 @@ build
 *.whl
 *.pytest_cache
 __pycache__
+
+
 
 # mkdocs documentation
 /site

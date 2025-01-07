@@ -195,7 +195,7 @@ plt.show()
 # %%
 # Plotting loss rates by model, loss type, showing different param sizes
 def plot_loss_rates_model(df, param_types, loss_types, model_types):
-    x = np.linspace(0.0, 1, 1000)
+    x = np.linspace(0.005, 1, 1000)
     loss_rates = []
     labels = []
     for param_type in param_types:
@@ -218,7 +218,6 @@ def plot_loss_rates_model(df, param_types, loss_types, model_types):
     ax.set_ylabel("Loss rate")
     return fig
 
-# %%
 combined_df["param_type_float"] = combined_df["param_type"].str[:-1].astype(float)
 
 param_types = combined_df['param_type_float'].unique()
@@ -229,7 +228,7 @@ model_types = combined_df['model_type'].unique()
 for loss in loss_types:
     for model in model_types:
         fig = plot_loss_rates_model(combined_df, param_types, [loss], [model])
-        fig.savefig("outputs/0.05_{}_{}_loss_rate.png".format(model, loss))
+        fig.savefig("outputs/0.05{}_{}_loss_rate.png".format(model, loss))
 
 # %%
 # Plotting context window
@@ -253,4 +252,36 @@ ax.set_title(f"Loss rates for a Pythia parameter model across context windows")
 ax.set_xlabel("Training steps")
 ax.set_ylabel("Loss rate")
 
-# %%
+# %% scaling laws
+df_in = pd.read_csv("outputs/training_data.csv")
+loss_types = set(df_in.loss_type)
+model_types = set(df_in.model_type)
+for loss_type in loss_types:
+    df = df_in[df_in["loss_type"] == loss_type]
+    params = []
+    loss_rates = []
+    labels = []
+    fig, ax = plt.subplots()
+    for model_type in model_types:
+        df_new = df[df["model_type"] == model_type]
+        losses = []
+        params_model = []
+        for paramy in df_new["num_params"].unique():
+            loss = df_new[df_new["num_params"] == paramy]["loss_interp"].min()
+            par = int(paramy)
+            losses.append(loss)
+            params_model.append(par)
+        df_reorder = pd.DataFrame({"loss": losses, "params": params_model})
+        df_reorder = df_reorder.sort_values(by="params")
+        loss_rates.append(df_reorder["loss"].to_list())
+        params.append(df_reorder["params"].to_list())
+        labels.append(model_type)
+    for i, loss_rate in enumerate(loss_rates):
+        ax.plot(params[i], loss_rate, label=labels[i], marker='o')
+    ax.legend()
+    ax.set_xlabel("Params")
+    ax.set_ylabel("Loss")
+
+    fig.savefig("outputs/scaling_laws_{}.png".format(loss_type))
+    
+

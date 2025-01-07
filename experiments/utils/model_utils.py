@@ -4,6 +4,7 @@ from models import (
     MistralDenseFormerForCausalLM,
     MultiresTransformer,
     MultiresTransformerConfig,
+ConvNet
 )
 from transformers import (
     AutoConfig,
@@ -50,6 +51,16 @@ def load_pythia(config_name: str, **kwargs) -> AutoModelForCausalLM:
 
     return model
 
+#testing
+def load_discrete(**kwargs):
+    model =  ConvNet(
+            vocab_size=8,
+            hidden_dim=256,
+            num_timesteps=2048,
+            num_layers=6,
+        )
+
+    return model
 
 def load_denseformer(config_name: str, **kwargs) -> MistralDenseFormerForCausalLM:
     base = AutoConfig.from_pretrained(config_name)

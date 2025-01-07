@@ -6,3 +6,6 @@ from .reconstruction_loss import VAELoss
 from .two_d_loss import TwoDRepLoss
 from .two_d_loss_ce import TwoDRepL2CELoss
 from .ce_plus_energy import CrossEntropyplusEnergy
+#from .two_d_loss_euclidean import TwoDRepLossEuclidean
+#from .two_d_plus_ce_loss import TwoDRepL2CELoss
+#from .discrete_ce_loss import  Discrete_CE_Loss
