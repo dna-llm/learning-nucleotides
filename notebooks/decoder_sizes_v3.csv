@@ -1,0 +1,7 @@
+Dim,Depth,Heads,Num_tokens,Batch Size Synthetic,Batch Size Viral,Synth Size,Viral Size,model_config
+768,	10,	16,	9,8,,132067349,,1
+512,	10,	16,	9,8,,132067349,,2
+512,	8,	16,	9,12,,98494481,,3
+512,	6,	8,	9,26,,21975053,,4
+256,	6,	8,	9,28,,7841805,,5
+256,	4,	8,	9,56,,5215753,,6
